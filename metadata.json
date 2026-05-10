@@ -1,0 +1,9 @@
+{
+  "name": "Do-It",
+  "description": "A daily task management and habit tracking app.",
+  "requestFramePermissions": [
+    "notifications",
+    "microphone"
+  ],
+  "majorCapabilities": []
+}
