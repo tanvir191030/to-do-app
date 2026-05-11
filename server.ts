@@ -32,8 +32,7 @@ async function callOpenRouter(prompt: string, isJson: boolean = true) {
         "models": [
           "google/gemini-2.0-flash-exp:free",
           "google/gemini-2.0-flash-exp",
-          "meta-llama/llama-3.3-70b-instruct:free",
-          "mistralai/mistral-7b-instruct:free"
+          "meta-llama/llama-3.3-70b-instruct:free"
         ],
         "messages": [{ "role": "user", "content": prompt }],
         ...(isJson ? { "response_format": { "type": "json_object" } } : {})
