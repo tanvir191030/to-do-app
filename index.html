@@ -2537,11 +2537,13 @@
         recognition.onend = function() {
             isRecording = false;
             const btn = document.getElementById('voiceBtn');
-            btn.style.background = 'var(--surface)';
-            btn.style.color = 'var(--primary)';
-            btn.style.borderColor = 'var(--primary)';
-            btn.classList.remove('mic-pulsing');
-            btn.querySelector('span').textContent = 'mic';
+            if (btn) {
+                btn.style.background = 'var(--surface)';
+                btn.style.color = 'var(--primary)';
+                btn.style.borderColor = 'var(--primary)';
+                btn.classList.remove('mic-pulsing');
+                btn.querySelector('span').textContent = 'mic';
+            }
             recordingType = null;
             voiceStartTime = 0;
             hideSnackbar();
@@ -2597,13 +2599,11 @@
     window.handleVoiceStart = function(e) {
         if(e.cancelable) e.preventDefault();
         
-        // If already recording in toggle mode, stop it
-        if(isRecording && recordingType === 'toggle') {
+        // If already recording, any new click should stop it
+        if(isRecording) {
             stopVoice();
             return;
         }
-
-        if(isRecording) return;
 
         voiceStartTime = Date.now();
         recordingType = 'hold'; // Assume hold initially
@@ -2634,7 +2634,21 @@
     }
 
     function stopVoice() {
-        try { recognition.stop(); } catch(e) {}
+        if (recognition) {
+            try { recognition.stop(); } catch(e) {}
+        }
+        // Force UI reset immediately for responsiveness
+        isRecording = false;
+        const btn = document.getElementById('voiceBtn');
+        if (btn) {
+            btn.style.background = 'var(--surface)';
+            btn.style.color = 'var(--primary)';
+            btn.style.borderColor = 'var(--primary)';
+            btn.classList.remove('mic-pulsing');
+            btn.querySelector('span').textContent = 'mic';
+        }
+        recordingType = null;
+        voiceStartTime = 0;
     }
 
     async function handleVoiceTask(transcript) {
