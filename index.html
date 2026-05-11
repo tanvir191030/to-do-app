@@ -2168,49 +2168,64 @@
         }
     }
 
-    function handleVoiceTask(transcript) {
-        // very basic NLP for demo: "Tomorrow gym at 7 AM" -> Title: gym, Date: tomorrow, Time: 7 AM
-        let title = transcript;
-        let date = new Date();
-        let time = '';
-        let hasDateSet = false;
+    async function handleVoiceTask(transcript) {
+        // Use AI to parse the voice transcript for better accuracy
+        const btn = document.getElementById('voiceBtn');
+        const oldIcon = btn.querySelector('span').textContent;
+        btn.querySelector('span').textContent = 'sync';
+        btn.querySelector('span').style.animation = 'spin 1s linear infinite';
 
-        const lower = transcript.toLowerCase();
-        if (lower.includes('tomorrow')) {
-            date.setDate(date.getDate() + 1);
-            title = title.replace(/tomorrow/i, '').trim();
-            hasDateSet = true;
+        try {
+            const res = await fetch('/api/parse-task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ input: transcript })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || 'AI Error');
+
+            const taskData = {
+                id: Date.now(),
+                title: data.title || transcript,
+                notes: `Voice recorded: "${transcript}"`,
+                date: data.date || new Date().toISOString().split('T')[0],
+                priority: data.priority || 'Med',
+                category: data.category || 'Personal',
+                taskType: 'one-time',
+                completed: false,
+                reminderEnabled: !!data.time,
+                reminderTime: data.time || null,
+            };
+
+            tasks.push(taskData);
+            saveToLocal();
+            syncUpsert(taskData);
+            renderTasks();
+            scheduleReminders();
+            
+            // Show success animation or sound? 
+            console.log("Voice task added successfully");
+        } catch (e) {
+            console.error("Voice parsing failed", e);
+            // Fallback to basic task if AI fails
+            const taskData = {
+                id: Date.now(),
+                title: transcript,
+                notes: `Voice (Fallback): "${transcript}"`,
+                date: new Date().toISOString().split('T')[0],
+                priority: 'Med',
+                category: 'Personal',
+                taskType: 'one-time',
+                completed: false,
+            };
+            tasks.push(taskData);
+            saveToLocal();
+            renderTasks();
+        } finally {
+            btn.querySelector('span').textContent = 'mic';
+            btn.querySelector('span').style.animation = '';
         }
-        
-        const timeMatch = lower.match(/(at )?(\d{1,2})(:\d{2})? *(am|pm)/i);
-        if (timeMatch) {
-            let hr = parseInt(timeMatch[2]);
-            const ampm = timeMatch[4].toLowerCase();
-            if (ampm === 'pm' && hr < 12) hr += 12;
-            if (ampm === 'am' && hr === 12) hr = 0;
-            const min = timeMatch[3] ? timeMatch[3].substring(1) : '00';
-            time = `${String(hr).padStart(2, '0')}:${min}`;
-            title = title.replace(timeMatch[0], '').trim();
-        }
-
-        const taskData = {
-            id: Date.now(),
-            title: title || 'Voice Task',
-            notes: `Transcribed: "${transcript}"`,
-            date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
-            priority: 'Med',
-            category: 'Personal',
-            taskType: 'one-time',
-            completed: false,
-            reminderEnabled: !!time,
-            reminderTime: time || null,
-        };
-
-        tasks.push(taskData);
-        saveToLocal();
-        syncUpsert(taskData);
-        renderTasks();
-        scheduleReminders();
     }
 
     // --- Pomodoro Logic ---
