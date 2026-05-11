@@ -14,31 +14,51 @@ async function startServer() {
 
   // AI Client for OpenRouter
   async function callOpenRouter(prompt: string, isJson: boolean = true) {
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) throw new Error("OPENROUTER_API_KEY is missing");
+    const apiKey = (process.env.OPENROUTER_API_KEY || "").replace(/"/g, '').trim();
+    if (!apiKey) {
+      console.error("CRITICAL: OPENROUTER_API_KEY is missing from environment variables");
+      throw new Error("AI Configuration Error: API Key missing");
+    }
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://github.com/tanvir191030/to-do-app", // Optional
-        "X-Title": "Do-It Task Manager", // Optional
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        "model": "google/gemini-2.0-flash-001", // You can change this model
-        "messages": [
-          { "role": "user", "content": prompt }
-        ],
-        "response_format": isJson ? { "type": "json_object" } : undefined
-      })
-    });
+    console.log(`Calling OpenRouter for prompt: ${prompt.substring(0, 50)}...`);
 
-    const data: any = await response.json();
-    if (data.error) throw new Error(data.error.message || "OpenRouter Error");
-    
-    let text = data.choices[0].message.content;
-    return text.trim().replace(/```json/gi, '').replace(/```/g, '').trim();
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer": "https://github.com/tanvir191030/to-do-app",
+          "X-Title": "Do-It Task Manager",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          "model": "google/gemini-2.0-flash-001", // Or "mistralai/mistral-7b-instruct:free"
+          "messages": [
+            { "role": "user", "content": prompt }
+          ],
+          ...(isJson ? { "response_format": { "type": "json_object" } } : {})
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("OpenRouter API Error:", errorData);
+        throw new Error(errorData.error?.message || `API returned status ${response.status}`);
+      }
+
+      const data: any = await response.json();
+      console.log("OpenRouter Response received successfully");
+      
+      if (!data.choices || !data.choices[0]) {
+        throw new Error("Invalid response format from AI provider");
+      }
+
+      let text = data.choices[0].message.content;
+      return text.trim().replace(/```json/gi, '').replace(/```/g, '').trim();
+    } catch (e: any) {
+      console.error("Fetch Exception during OpenRouter call:", e.message);
+      throw e;
+    }
   }
 
   // API Route for Task Parsing
