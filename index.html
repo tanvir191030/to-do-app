@@ -1396,11 +1396,19 @@
 
     async function loadTasks() {
         if (!currentUser) return;
+        
+        // Load from cache silently first to show content immediately
+        const cached = localStorage.getItem('doit_tasks_cache');
+        if (cached && tasks.length === 0) {
+            tasks = JSON.parse(cached);
+            renderTasks();
+        }
+
         try {
             const { data, error } = await supabaseApp.from('tasks').select('*').eq('user_id', currentUser.id);
             if (error) throw error;
             if (data) {
-                tasks = data.map(d => ({
+                const newTasks = data.map(d => ({
                     id: d.id,
                     title: d.title,
                     notes: d.notes || '',
@@ -1415,16 +1423,20 @@
                     subtasks: d.subtasks || [],
                     focusDuration: d.focus_duration || 25
                 })).sort((a,b) => b.createdAt - a.createdAt);
-                // Sync to local
-                localStorage.setItem('doit_tasks_cache', JSON.stringify(tasks));
+                
+                // Compare length and IDs to prevent unnecessary blinking
+                const currentIds = tasks.map(t => t.id).join(',');
+                const newIds = newTasks.map(t => t.id).join(',');
+                
+                if (currentIds !== newIds || tasks.length !== newTasks.length) {
+                    tasks = newTasks;
+                    localStorage.setItem('doit_tasks_cache', JSON.stringify(tasks));
+                    renderTasks();
+                }
             }
         } catch (e) {
-            console.warn('Offline mode: Loading tasks from local cache');
-            const cached = localStorage.getItem('doit_tasks_cache');
-            if (cached) tasks = JSON.parse(cached);
+            console.warn('Sync failed, using cached data');
         }
-        scheduleReminders();
-        renderTasks();
     }
 
     async function syncUpsert(task) {
@@ -1467,17 +1479,41 @@
         }
     }
 
-    async function confirmDelete(id) {
-        if (!confirm('Delete this task?')) return;
+    let taskToDelete = null;
+    function confirmDelete(id) {
+        taskToDelete = id;
+        const modal = document.getElementById('alertModal');
+        const overlay = document.getElementById('overlay');
+        if (modal) modal.classList.add('active');
+        if (overlay) overlay.classList.add('active');
+        
+        // Wire up the confirm button
+        const confirmBtn = document.getElementById('confirmDelBtn');
+        if (confirmBtn) {
+            confirmBtn.onclick = executeDelete;
+        }
+    }
+
+    function closeAlert() {
+        const modal = document.getElementById('alertModal');
+        const overlay = document.getElementById('overlay');
+        if (modal) modal.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
+        taskToDelete = null;
+    }
+
+    async function executeDelete() {
+        if (!taskToDelete) return;
+        const id = taskToDelete;
         
         // Optimistic UI update
         tasks = tasks.filter(t => t.id !== id);
         saveToLocal();
         renderTasks();
+        closeAlert();
         
         if (currentUser) {
             await syncDelete(id);
-            // Update cache
             localStorage.setItem('doit_tasks_cache', JSON.stringify(tasks));
         }
     }
