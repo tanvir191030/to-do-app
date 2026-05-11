@@ -377,13 +377,6 @@
 
         .fab:active { transform: scale(0.9); }
 
-        .sortable-ghost {
-            opacity: 0.4;
-            background: var(--primary-container) !important;
-        }
-
-        .drag-handle:active { cursor: grabbing; }
-
         /* Bottom Drawer */
         .overlay {
             position: fixed;
@@ -556,35 +549,10 @@
         }
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-        /* Toast / Undo */
-        .toast {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--surface);
-            color: var(--on-surface);
-            padding: 12px 20px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            z-index: 2000;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 1px solid var(--outline-variant);
-        }
-        .toast.active { transform: translateX(-50%) translateY(0); }
-        .undo-btn { color: var(--primary); font-weight: 700; background: none; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div id="undoToast" class="toast">
-        <span id="toastMsg">Task completed</span>
-        <button class="undo-btn" onclick="undoAction()">Undo</button>
-    </div>
 
     <!-- Auth Section -->
     <div id="authModal" style="display: none;">
@@ -609,16 +577,9 @@
         <header>
             <div class="greeting">
                 <p id="todayDate">Mon, Jan 01</p>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <h1 class="greeting-text">Hey, User</h1>
-                    <div id="streakBadge" style="display:flex; align-items:center; gap:4px; background:var(--primary-container); color:var(--primary); padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700;">
-                        <span class="material-symbols-outlined" style="font-size:16px;">local_fire_department</span>
-                        <span id="streakCount">0</span>
-                    </div>
-                </div>
+                <h1 class="greeting-text">Hey, User</h1>
             </div>
             <div class="top-actions">
-                <button class="icon-btn" onclick="openStats()"><span class="material-symbols-outlined">analytics</span></button>
                 <button class="icon-btn" onclick="toggleSearch()"><span class="material-symbols-outlined">search</span></button>
                 <button class="icon-btn" onclick="toggleTheme()"><span class="material-symbols-outlined">dark_mode</span></button>
                 <button class="icon-btn" id="logoutBtn" onclick="logOut()"><span class="material-symbols-outlined">logout</span></button>
@@ -644,8 +605,6 @@
                     <circle id="progressRing" class="ring-fill" cx="40" cy="40" r="32"></circle>
                 </svg>
                 <div class="progress-pct"><span id="progressPct">0</span>%</div>
-            </div>
-        </div>
             </div>
         </div>
 
@@ -771,44 +730,14 @@
         <h2 id="alarmTaskTitle">Task Reminder!</h2>
         <p style="margin-bottom:24px; opacity:0.7;">Time to get this done.</p>
         <button class="save-btn" onclick="stopAlarm()">Stop Alarm</button>
-        <button class="save-btn" style="background:var(--primary-container); color:var(--primary); margin-top:8px; box-shadow:none;" onclick="snoozeAlarm()">Snooze 5m</button>
-    </div>
-
-    <!-- Stats Drawer -->
-    <div class="overlay" id="statsOverlay" style="z-index: 100000;" onclick="closeStats()"></div>
-    <div class="bottom-sheet" id="statsDrawer" style="z-index: 100001; bottom: -100%;">
-        <div class="drag-handle"></div>
-        <h2 class="sheet-title">Productivity Insights</h2>
-        <div style="margin-bottom: 24px;">
-            <p style="font-size:14px; opacity:0.7; margin-bottom:16px;">Weekly Progress</p>
-            <div id="weeklyChart" style="display:flex; align-items:flex-end; gap:8px; height:120px; padding:0 10px;">
-                <!-- Bars injected here -->
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10px; opacity:0.5;">
-                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-            </div>
-        </div>
-        <div class="progress-card" style="margin-bottom: 0;">
-            <div class="progress-info">
-                <p id="mostActiveDay">Most active: Loading...</p>
-                <div style="margin-top: 12px; font-weight: 600; font-size: 14px;">
-                    Keep it up!
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Audio Assets -->
     <audio id="addSound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
     <audio id="completeSound" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
-    <audio id="undoSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
     <audio id="alarmDefault" src="https://assets.mixkit.co/active_storage/sfx/1005/1005-preview.mp3" loop></audio>
     <audio id="alarmGentle" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" loop></audio>
     <audio id="alarmUrgent" src="https://assets.mixkit.co/active_storage/sfx/995/995-preview.mp3" loop></audio>
-
-    <audio id="rainAudio" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3" loop></audio>
-    <audio id="forestAudio" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" loop></audio>
-    <audio id="lofiAudio" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" loop></audio>
 
     <script>
         // --- Supabase Setup ---
@@ -816,16 +745,8 @@
         const SUPABASE_KEY = '%VITE_SUPABASE_ANON_KEY%';
 
         const supabaseApp = window.supabase.createClient(
-            (SUPABASE_URL && !SUPABASE_URL.includes('%VITE')) ? SUPABASE_URL : 'https://missing-url.supabase.co', 
-            (SUPABASE_KEY && !SUPABASE_KEY.includes('%VITE')) ? SUPABASE_KEY : 'missing-key',
-            {
-                auth: {
-                    persistSession: true,
-                    autoRefreshToken: true,
-                    detectSessionInUrl: true,
-                    storageKey: 'doit-auth-session'
-                }
-            }
+            (SUPABASE_URL && !SUPABASE_URL.includes('%VITE')) ? SUPABASE_URL : 'https://missing.supabase.co', 
+            (SUPABASE_KEY && !SUPABASE_KEY.includes('%VITE')) ? SUPABASE_KEY : 'missing'
         );
 
         // --- State Management ---
@@ -839,7 +760,6 @@
         let selectedFocusDate = new Date();
         let authMode = 'signup';
         let justAddedId = null;
-        let lastAction = null; // for Undo
 
         const els = {
             list: document.getElementById('taskList'),
@@ -880,57 +800,7 @@
             });
 
             loadTasksFromLocal();
-            updateStreak();
-            initSortable();
             setInterval(() => scheduleReminders(), 60000);
-        }
-
-        function initSortable() {
-            new Sortable(els.list, {
-                animation: 150,
-                handle: '.drag-handle',
-                ghostClass: 'sortable-ghost',
-                onEnd: () => {
-                    const newTasks = [];
-                    els.list.querySelectorAll('.task-card').forEach(el => {
-                        const id = el.id.replace('task-', '');
-                        const task = tasks.find(t => String(t.id) === String(id));
-                        if (task) newTasks.push(task);
-                    });
-                    tasks = newTasks;
-                    saveToLocal();
-                }
-            });
-        }
-
-        function updateStreak() {
-            const streakData = JSON.parse(localStorage.getItem('doit_streak') || '{"count":0, "lastDate":null}');
-            const today = new Date().toDateString();
-            const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-            
-            if (streakData.lastDate === yesterday.toDateString()) {
-                // Potential to keep streak, but we only increment when first task done today
-            } else if (streakData.lastDate !== today) {
-                // Streak broken if not yesterday and not today
-                // But let's only reset if it was more than 1 day ago
-                const last = streakData.lastDate ? new Date(streakData.lastDate) : null;
-                if (last && (new Date() - last) > 86400000 * 2) {
-                    streakData.count = 0;
-                }
-            }
-            document.getElementById('streakCount').textContent = streakData.count;
-            localStorage.setItem('doit_streak', JSON.stringify(streakData));
-        }
-
-        function incrementStreak() {
-            const streakData = JSON.parse(localStorage.getItem('doit_streak') || '{"count":0, "lastDate":null}');
-            const today = new Date().toDateString();
-            if (streakData.lastDate !== today) {
-                streakData.count++;
-                streakData.lastDate = today;
-                localStorage.setItem('doit_streak', JSON.stringify(streakData));
-                document.getElementById('streakCount').textContent = streakData.count;
-            }
         }
 
         function initFx() {
@@ -1045,10 +915,7 @@
                         <div class="task-content">
                             <div class="task-top">
                                 <div class="task-title">${task.title}</div>
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <div style="font-size:10px; padding:2px 6px; border-radius:4px; background:var(--primary-container); color:var(--primary);">${task.priority}</div>
-                                    <div class="drag-handle" style="cursor:grab; opacity:0.4;"><span class="material-symbols-outlined" style="font-size:18px;">drag_indicator</span></div>
-                                </div>
+                                <div style="font-size:10px; padding:2px 6px; border-radius:4px; background:var(--primary-container); color:var(--primary);">${task.priority}</div>
                             </div>
                             <div class="task-meta">
                                 <div class="meta-item"><span class="icon material-symbols-outlined">category</span> ${task.category}</div>
@@ -1088,42 +955,13 @@
         function toggleComplete(id) {
             const task = tasks.find(t => t.id === id);
             if(task) {
-                const oldStatus = task.completed;
                 task.completed = !task.completed;
-                
                 if(task.completed) {
                     document.getElementById('completeSound').play().catch(()=>{});
                     showConfetti(document.getElementById(`task-${id}`));
-                    incrementStreak();
-                    showToast("Task completed", id, 'complete');
                 }
-                
                 saveToLocal(); syncUpsert(task); renderTasks();
             }
-        }
-
-        let toastTimeout = null;
-        function showToast(msg, id, action) {
-            lastAction = { id, action };
-            const toast = document.getElementById('undoToast');
-            document.getElementById('toastMsg').textContent = msg;
-            toast.classList.add('active');
-            clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(() => toast.classList.remove('active'), 4000);
-        }
-
-        function undoAction() {
-            if (!lastAction) return;
-            const task = tasks.find(t => t.id === lastAction.id);
-            if (task) {
-                if (lastAction.action === 'complete') {
-                    task.completed = false;
-                }
-                document.getElementById('undoSound').play().catch(()=>{});
-                document.getElementById('undoToast').classList.remove('active');
-                saveToLocal(); syncUpsert(task); renderTasks();
-            }
-            lastAction = null;
         }
 
         function toggleSubtaskStatus(taskId, subIndex) {
@@ -1208,25 +1046,6 @@
             localStorage.setItem('theme', next);
         }
 
-        let currentAmbient = null;
-        function toggleAmbient(type) {
-            const audios = { rain: 'rainAudio', forest: 'forestAudio', lofi: 'lofiAudio' };
-            const btns = { rain: 'rainBtn', forest: 'forestBtn', lofi: 'lofiBtn' };
-            
-            if (currentAmbient === type) {
-                document.getElementById(audios[type]).pause();
-                document.getElementById(btns[type]).style.background = 'var(--surface)';
-                document.getElementById(btns[type]).style.color = 'var(--on-surface)';
-                currentAmbient = null;
-            } else {
-                if (currentAmbient) toggleAmbient(currentAmbient);
-                document.getElementById(audios[type]).play();
-                document.getElementById(btns[type]).style.background = 'var(--primary)';
-                document.getElementById(btns[type]).style.color = 'white';
-                currentAmbient = type;
-            }
-        }
-
         let notificationTimeouts = {};
         function scheduleReminders() {
             const now = new Date();
@@ -1252,68 +1071,6 @@
                 const a = document.getElementById(id); a.pause(); a.currentTime = 0;
             });
             document.getElementById('alarmModal').style.display = 'none';
-        }
-
-        function snoozeAlarm() {
-            stopAlarm();
-            setTimeout(() => {
-                const task = tasks.find(t => !t.completed && t.reminderEnabled); // simplistic
-                if(task) triggerAlarm(task);
-            }, 300000); // 5 mins
-        }
-
-        function openStats() {
-            document.getElementById('statsOverlay').style.display = 'block';
-            document.getElementById('statsDrawer').style.bottom = '0';
-            renderStatsDashboard();
-        }
-
-        function closeStats() {
-            document.getElementById('statsOverlay').style.display = 'none';
-            document.getElementById('statsDrawer').style.bottom = '-100%';
-        }
-
-        function renderStatsDashboard() {
-            const chart = document.getElementById('weeklyChart');
-            chart.innerHTML = '';
-            
-            const days = [];
-            const today = new Date();
-            for(let i=6; i>=0; i--) {
-                const d = new Date(today);
-                d.setDate(today.getDate() - i);
-                days.push(d.toISOString().split('T')[0]);
-            }
-
-            let maxDone = 0;
-            const counts = days.map(d => {
-                const count = tasks.filter(t => t.date === d && t.completed).length;
-                if(count > maxDone) maxDone = count;
-                return count;
-            });
-
-            days.forEach((d, i) => {
-                const bar = document.createElement('div');
-                bar.style.flex = '1';
-                const h = maxDone === 0 ? 0 : (counts[i] / maxDone) * 100;
-                bar.style.height = `${h}%`;
-                bar.style.background = 'var(--primary)';
-                bar.style.borderRadius = '4px';
-                bar.style.transition = 'height 1s ease';
-                chart.appendChild(bar);
-            });
-
-            // Most active day
-            const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-            const dayCounts = [0,0,0,0,0,0,0];
-            tasks.forEach(t => {
-                if(t.completed && t.date) {
-                    const d = new Date(t.date).getDay();
-                    dayCounts[d]++;
-                }
-            });
-            const maxIdx = dayCounts.indexOf(Math.max(...dayCounts));
-            document.getElementById('mostActiveDay').textContent = `Most active day: ${dayNames[maxIdx]}`;
         }
 
         function openAITaskModal() { document.getElementById('aiModalOverlay').style.display = 'block'; document.getElementById('aiTaskModal').style.bottom = '0'; }
