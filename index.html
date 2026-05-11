@@ -953,9 +953,9 @@
             // Also need to give authModal a data-theme attribute implicitly or let it inherit from html.
             // HTML body already has data-theme, so CSS like [data-theme="dark"] .snow-wrapper will work.
         }
+        }
     }
 
-    let sortableInst = null;
     function init() {
         const theme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', theme);
@@ -969,16 +969,18 @@
         initFx();
         renderSwipeDates();
         
-        // Supabase Auth Listener
         supabaseApp.auth.getSession().then(({ data: { session } }) => {
+            console.log("Initial session:", session ? "Active" : "None");
             handleSession(session);
         });
 
         supabaseApp.auth.onAuthStateChange((_event, session) => {
+            console.log("Auth event:", _event);
             handleSession(session);
         });
         
         checkMidnightRefresh();
+        loadTasksFromLocal();
         
         document.getElementById('remToggle').addEventListener('change', (e) => {
             document.getElementById('remTimeRow').style.display = e.target.checked ? 'flex' : 'none';
@@ -1008,13 +1010,38 @@
             }
         });
         
-        loadTasks();
-        
-        // periodically check for midnight refresh and alarms
         setInterval(() => {
             scheduleReminders();
             checkMidnightRefresh();
-        }, 60000); // 1 minute
+        }, 60000);
+    }
+
+    function loadTasksFromLocal() {
+        const local = localStorage.getItem('doit_tasks');
+        if(local) {
+            tasks = JSON.parse(local);
+            renderTasks();
+        }
+    }
+
+    function handleSession(session) {
+        const modal = document.getElementById('authModal');
+        if (session) {
+            currentUser = session.user;
+            modal.style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'block';
+            let name = currentUser.user_metadata?.name || 'User';
+            document.querySelector('.greeting').innerHTML = `Hey, <span style="color:var(--on-surface);font-weight:700;">${name}</span>`;
+            loadTasks();
+        } else {
+            currentUser = null;
+            modal.style.display = 'flex';
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.querySelector('.greeting').innerHTML = `Hey, <span style="color:var(--on-surface);font-weight:700;">Guest</span>`;
+            tasks = [];
+            renderTasks();
+            updateProgress();
+        }
     }
 
     function checkMidnightRefresh() {
@@ -1040,47 +1067,26 @@
     function scheduleReminders() {
         if (!("Notification" in window)) return;
         
-        // Clear old timeouts
         Object.values(notificationTimeouts).forEach(clearTimeout);
         notificationTimeouts = {};
 
         const now = new Date();
         tasks.forEach(t => {
             if (t.reminderEnabled && t.reminderTime && !t.completed) {
-                // If it has a date, use it, otherwise assume today
                 let remDate = t.date ? new Date(t.date) : new Date();
                 const [hr, min] = t.reminderTime.split(':').map(Number);
                 remDate.setHours(hr, min, 0, 0);
 
                 const timeDiff = remDate.getTime() - now.getTime();
                 
-                // Exact time
                 if (timeDiff > 0 && timeDiff <= 86400000) {
                     notificationTimeouts[`${t.id}_exact`] = setTimeout(() => {
                         triggerNotification(t, 'It is time!');
                     }, timeDiff);
                 }
-                
-                // 10 mins before
-                const diff10m = timeDiff - 600000;
-                if (diff10m > 0 && diff10m <= 86400000) {
-                    notificationTimeouts[`${t.id}_10m`] = setTimeout(() => {
-                        triggerNotification(t, 'Starts in 10 minutes');
-                    }, diff10m);
-                }
-                
-                // 1 hour before
-                const diff1h = timeDiff - 3600000;
-                if (diff1h > 0 && diff1h <= 86400000) {
-                    notificationTimeouts[`${t.id}_1h`] = setTimeout(() => {
-                        triggerNotification(t, 'Starts in 1 hour');
-                    }, diff1h);
-                }
             }
         });
     }
-
-    let currentAlarmTask = null;
 
     function triggerNotification(task, message = 'It is time!') {
         if (Notification.permission === 'granted') {
@@ -1091,7 +1097,6 @@
         }
         
         currentAlarmTask = task;
-        // Show Big Alarm UI and Play Sound
         const audio = document.getElementById('alarmAudio');
         audio.play().catch(e => console.log('Audio autoplay blocked', e));
         
@@ -1107,55 +1112,13 @@
         currentAlarmTask = null;
     }
 
-    function snoozeAlarm(minutes) {
-        if (!currentAlarmTask) return;
-        const task = currentAlarmTask;
-        stopAlarm();
-        
-        // Schedule snooze
-        const snoozeMs = minutes * 60 * 1000;
-        notificationTimeouts[`${task.id}_snooze_${Date.now()}`] = setTimeout(() => {
-            triggerNotification(task, `Snoozed: time's up!`);
-        }, snoozeMs);
-    }
-
-    function requestNotificationPermission() {
-        if ("Notification" in window) {
-            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-                Notification.requestPermission();
-            }
-        }
-    }
-
     function saveToLocal() {
-        // Now sync primarily handles external storage
-        // localStorage is kept as a small fast cache
         localStorage.setItem('doit_tasks', JSON.stringify(tasks));
         updateProgress();
         renderCalendar();
         renderStats();
     }
 
-    function handleSession(session) {
-        const modal = document.getElementById('authModal');
-        if (session) {
-            currentUser = session.user;
-            modal.style.display = 'none';
-            document.getElementById('logoutBtn').style.display = 'block';
-            let name = currentUser.user_metadata?.name || 'User';
-            document.querySelector('.greeting').innerHTML = `Hey, <span style="color:var(--on-surface);font-weight:700;">${name}</span>`;
-            loadTasks();
-        } else {
-            currentUser = null;
-            document.getElementById('authModal').style.display = 'flex';
-            document.getElementById('logoutBtn').style.display = 'none';
-            tasks = [];
-            renderTasks();
-            updateProgress();
-        }
-    }
-
-    // --- Supabase Operations ---
     async function loadTasks() {
         if (!currentUser) return;
         try {
