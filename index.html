@@ -74,6 +74,14 @@
             margin: 0 auto;
             background: var(--bg);
         }
+        @media (max-width: 480px) {
+            .app-container {
+                position: fixed;
+                inset: 0;
+                max-width: none;
+                height: 100dvh;
+            }
+        }
 
         /* Header */
         header { 
