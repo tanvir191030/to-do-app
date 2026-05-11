@@ -558,6 +558,9 @@
             </div>
             <div class="section-header mt-2">
                 <h3 id="calSelectedDateStr">Tasks for Today</h3>
+                <button class="icon-btn" style="background: var(--primary-light); color: var(--primary); border-radius: 12px; width: 40px; height: 40px;" onclick="addFromCalendar()">
+                    <span class="material-symbols-outlined">add</span>
+                </button>
             </div>
             <div class="task-list" id="calTaskList">
                 <!-- populated by JS -->
@@ -930,11 +933,16 @@
 
     function renderSwipeDates() {
         const wrap = document.getElementById('calSwipeScroll');
+        if(!wrap) return;
         wrap.innerHTML = '';
-        const today = new Date();
-        for(let i = -2; i <= 14; i++) {
-            const d = new Date(today);
-            d.setDate(today.getDate() + i);
+        
+        // Show all days of current selectedFocusDate month
+        const targetYear = selectedFocusDate.getFullYear();
+        const targetMonth = selectedFocusDate.getMonth();
+        const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+        
+        for(let i = 1; i <= daysInMonth; i++) {
+            const d = new Date(targetYear, targetMonth, i);
             const dayStr = d.toLocaleDateString('en-US', {weekday:'short'});
             const dateNum = d.getDate();
             
@@ -949,13 +957,13 @@
             wrap.appendChild(btn);
         }
         
-        // Scroll slightly if active element is far
+        // Auto scroll to active date
         setTimeout(() => {
             const activeEl = wrap.querySelector('.active');
             if (activeEl) {
                 activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
             }
-        }, 50);
+        }, 100);
     }
 
     function toggleAuthMode() {
@@ -2086,11 +2094,22 @@
             el.textContent = i;
             el.onclick = () => {
                 selectedCalDate = new Date(year, month, i);
+                selectedFocusDate = new Date(selectedCalDate); // Sync home focus
                 renderCalendar();
+                renderSwipeDates(); // Update home bar to this month
             };
             grid.appendChild(el);
         }
         renderCalendarTasks();
+    }
+
+    function addFromCalendar() {
+        const d = selectedCalDate;
+        const yy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        els.dateInput.value = `${yy}-${mm}-${dd}`;
+        openDrawer();
     }
 
     function renderCalendarTasks() {
