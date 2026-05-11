@@ -755,12 +755,8 @@
     </button>
     
     <!-- Voice FAB (Mic) - Placed next to Add button -->
-    <button id="voiceBtn" class="fab" 
-            style="bottom: 95px; right: 90px; width: 48px; height: 48px; background: var(--surface); color: var(--primary); border: 2px solid var(--primary); z-index: 1000;"
-            onpointerdown="handleVoiceStart(event)" 
-            onpointerup="handleVoiceEnd(event)"
-            ontouchstart="handleVoiceStart(event)"
-            ontouchend="handleVoiceEnd(event)">
+    <button id="voiceBtn" class="fab" onclick="toggleVoice()"
+            style="bottom: 95px; right: 90px; width: 48px; height: 48px; background: var(--surface); color: var(--primary); border: 2px solid var(--primary); z-index: 1000;">
         <span class="material-symbols-outlined" style="font-size: 24px;">mic</span>
     </button>
 
@@ -2584,9 +2580,7 @@
         }
     }
 
-    window.handleVoiceStart = async function(e) {
-        if(e.cancelable) e.preventDefault();
-        
+    async function toggleVoice() {
         if(isRecording) {
             stopVoice();
             return;
@@ -2605,14 +2599,11 @@
             try {
                 recognition.start();
             } catch (err) {
+                console.error('Start failed', err);
                 stopVoice();
             }
         }
-    };
-
-    window.handleVoiceEnd = function(e) {
-        // No-op for now to keep it simple toggle
-    };
+    }
 
     function stopVoice() {
         if (recognition) {
