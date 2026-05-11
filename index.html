@@ -373,7 +373,10 @@
             to { opacity: 1; transform: scale(1); }
         }
 
-        .bg-fx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; backface-visibility: hidden; perspective: 1000px; transform: translateZ(0); }
+        .bg-fx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; display: none; }
+        @media (min-width: 768px) {
+            .bg-fx { display: block; backface-visibility: hidden; perspective: 1000px; transform: translateZ(0); }
+        }
         .snow-wrapper, .sun-birds-wrapper { position: absolute; inset: 0; width: 100%; height: 100%; display: none; backface-visibility: hidden; transform: translateZ(0); }
         [data-theme="dark"] .snow-wrapper { display: block; }
         [data-theme="light"] .sun-birds-wrapper { display: block; }
@@ -739,21 +742,18 @@
             </button>
         </div>
 
-        <div style="font-size: 10px; color: var(--on-surface-variant); opacity: 0.5; margin-top: 16px;">v3.0.1 Mobile Optimized</div>
     </main>
 
-    <!-- FAB -->
-    <button class="fab" onclick="openDrawer()" style="bottom: 90px; right: 20px; z-index: 1000;">
+    <!-- Main FAB (Add) -->
+    <button class="fab" onclick="openDrawer()" style="bottom: 95px; right: 24px; z-index: 1000;">
         <span class="material-symbols-outlined">add</span>
     </button>
     
-    <!-- Voice FAB -->
-    <!-- Voice FAB -->
-    <button class="fab" id="voiceBtn" 
-            style="bottom: 160px; right: 28px; width: 44px; height: 44px; background: var(--surface); color: var(--primary); border: 2px solid var(--primary); z-index: 1000; transition: all 0.2s; touch-action: none;"
-            onmousedown="handleVoiceStart(event)" 
-            onmouseup="handleVoiceEnd(event)"
-            onmouseleave="handleVoiceEnd(event)"
+    <!-- Voice FAB (Mic) -->
+    <button id="voiceBtn" class="fab" 
+            style="bottom: 165px; right: 24px; width: 48px; height: 48px; background: var(--surface); color: var(--primary); border: 2px solid var(--primary); z-index: 1000;"
+            onpointerdown="handleVoiceStart(event)" 
+            onpointerup="handleVoiceEnd(event)"
             ontouchstart="handleVoiceStart(event)"
             ontouchend="handleVoiceEnd(event)">
         <span class="material-symbols-outlined" style="font-size: 24px;">mic</span>
