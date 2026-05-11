@@ -1184,28 +1184,57 @@
                 const timeDiff = remDate.getTime() - now.getTime();
                 
                 if (timeDiff > 0 && timeDiff <= 86400000) {
+                    // Exact time alarm
                     notificationTimeouts[`${t.id}_exact`] = setTimeout(() => {
-                        triggerNotification(t, 'It is time!');
+                        triggerNotification(t, 'It is time!', true);
                     }, timeDiff);
+
+                    // Extra reminders for High priority tasks
+                    if (t.priority === 'High') {
+                        const intervals = [
+                            { mins: 10, label: '10 minutes to go!' },
+                            { mins: 5, label: '5 minutes remaining!' },
+                            { mins: 3, label: 'Almost time! 3 mins left' }
+                        ];
+
+                        intervals.forEach(interval => {
+                            const offset = interval.mins * 60 * 1000;
+                            const warningDiff = timeDiff - offset;
+                            if (warningDiff > 0) {
+                                notificationTimeouts[`${t.id}_warn_${interval.mins}`] = setTimeout(() => {
+                                    triggerNotification(t, interval.label, false);
+                                }, warningDiff);
+                            }
+                        });
+                    }
                 }
             }
         });
     }
 
-    function triggerNotification(task, message = 'It is time!') {
+    function triggerNotification(task, message = 'It is time!', showAlarm = true) {
         if (Notification.permission === 'granted') {
-            new Notification(`Reminder: ${task.title}`, {
+            new Notification(`High Priority: ${task.title}`, {
                 body: message,
-                icon: '/favicon.ico'
+                icon: '/favicon.ico',
+                vibrate: [200, 100, 200]
             });
         }
         
-        currentAlarmTask = task;
-        const audio = document.getElementById('alarmAudio');
-        audio.play().catch(e => console.log('Audio autoplay blocked', e));
-        
-        document.getElementById('alarmTaskTitle').textContent = task.title;
-        document.getElementById('alarmModal').style.display = 'flex';
+        if (showAlarm) {
+            currentAlarmTask = task;
+            const audio = document.getElementById('alarmAudio');
+            audio.play().catch(e => console.log('Audio autoplay blocked', e));
+            
+            document.getElementById('alarmTaskTitle').textContent = task.title;
+            document.getElementById('alarmModal').style.display = 'flex';
+        } else {
+            // Just a toast for warnings
+            showSnackbar(`Urgent: ${task.title} - ${message}`, 'OK', hideSnackbar);
+            // Play a short alert sound
+            const addSound = document.getElementById('addSound');
+            if(addSound) addSound.play().catch(()=>{});
+        }
     }
 
     function stopAlarm() {
