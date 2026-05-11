@@ -1271,7 +1271,8 @@
 
     function renderTasks() {
         // Smart Notifications logic
-        const todayStr = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const todaysTasks = tasks.filter(t => t.date === todayStr || (!t.date));
         const unfinished = todaysTasks.filter(t => !t.completed).length;
         const noticeEl = document.getElementById('smartNotice');
@@ -1399,7 +1400,8 @@
     }
 
     function updateProgress() {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const todayTasks = tasks.filter(t => t.date === todayStr || t.taskType === 'daily');
         const total = todayTasks.length;
         const done = todayTasks.filter(t => t.completed).length;
@@ -1436,6 +1438,7 @@
             task.completed = !task.completed;
             saveToLocal();
             syncUpsert(task);
+            updateProgress(); // Immediate progress update
             
             // Fast UI update
             const card = document.getElementById(`task-${id}`);
@@ -2321,8 +2324,12 @@
         } catch (e) {
             console.error("Voice parsing failed", e);
             // Fallback: just put the transcript in the title and open drawer
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             openDrawer();
             document.getElementById('taskInput').value = transcript;
+            // Set date to today in the input
+            document.getElementById('dateInput').value = todayStr;
         } finally {
             icon.textContent = 'mic';
             icon.style.animation = '';
