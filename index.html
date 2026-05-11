@@ -2278,13 +2278,14 @@
     }
 
     async function handleVoiceTask(transcript) {
-        // Use AI to parse the voice transcript for better accuracy
+        // Show loading state on the voice button
         const btn = document.getElementById('voiceBtn');
-        const oldIcon = btn.querySelector('span').textContent;
-        btn.querySelector('span').textContent = 'sync';
-        btn.querySelector('span').style.animation = 'spin 1s linear infinite';
+        const icon = btn.querySelector('span');
+        icon.textContent = 'sync';
+        icon.style.animation = 'spin 1s linear infinite';
 
         try {
+            // Use our robust AI parsing endpoint
             const res = await fetch('/api/parse-task', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2294,46 +2295,37 @@
             
             if (!res.ok) throw new Error(data.error || 'AI Error');
 
-            const taskData = {
-                id: Date.now(),
-                title: data.title || transcript,
-                notes: `Voice recorded: "${transcript}"`,
-                date: data.date || new Date().toISOString().split('T')[0],
-                priority: data.priority || 'Med',
-                category: data.category || 'Personal',
-                taskType: 'one-time',
-                completed: false,
-                reminderEnabled: !!data.time,
-                reminderTime: data.time || null,
-            };
-
-            tasks.push(taskData);
-            saveToLocal();
-            syncUpsert(taskData);
-            renderTasks();
-            scheduleReminders();
+            // Instead of just adding, let's OPEN the drawer and fill it
+            // This allows the user to see what the AI did and save it manually
+            openDrawer();
             
-            // Show success animation or sound? 
-            console.log("Voice task added successfully");
+            if(data.title) document.getElementById('taskInput').value = data.title;
+            if(data.date) document.getElementById('dateInput').value = data.date;
+            if(data.time) {
+                document.getElementById('remToggle').checked = true;
+                document.getElementById('remTimeRow').style.display = 'flex';
+                document.getElementById('remTimeInput').value = data.time;
+            }
+            if(data.priority) {
+                selectedPriority = data.priority;
+                setOptUI('priPanel', data.priority, 'priority');
+            }
+            if(data.category) {
+                selectedCategory = data.category;
+                setOptUI('catPanel', data.category, 'category');
+            }
+            
+            // Success sound if available
+            document.getElementById('addSound').play().catch(()=>{});
+            
         } catch (e) {
             console.error("Voice parsing failed", e);
-            // Fallback to basic task if AI fails
-            const taskData = {
-                id: Date.now(),
-                title: transcript,
-                notes: `Voice (Fallback): "${transcript}"`,
-                date: new Date().toISOString().split('T')[0],
-                priority: 'Med',
-                category: 'Personal',
-                taskType: 'one-time',
-                completed: false,
-            };
-            tasks.push(taskData);
-            saveToLocal();
-            renderTasks();
+            // Fallback: just put the transcript in the title and open drawer
+            openDrawer();
+            document.getElementById('taskInput').value = transcript;
         } finally {
-            btn.querySelector('span').textContent = 'mic';
-            btn.querySelector('span').style.animation = '';
+            icon.textContent = 'mic';
+            icon.style.animation = '';
         }
     }
 
