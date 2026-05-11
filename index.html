@@ -669,6 +669,9 @@
             <button class="opt-btn" id="btnPri" onclick="togglePanel('priPanel', this)">
                 <span class="material-symbols-outlined" style="font-size:18px;color:var(--primary);">flag</span> Priority
             </button>
+            <button class="opt-btn" id="btnFocus" onclick="togglePanel('focusPanel', this)">
+                <span class="material-symbols-outlined" style="font-size:18px;color:var(--primary);">timer</span> Timer
+            </button>
         </div>
 
         <!-- Panels -->
@@ -778,7 +781,14 @@
     // --- Supabase Setup ---
     const SUPABASE_URL = '%VITE_SUPABASE_URL%';
     const SUPABASE_KEY = '%VITE_SUPABASE_ANON_KEY%';
-    const supabaseApp = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabaseApp = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: 'doit-auth-session'
+        }
+    });
 
     // --- State Management ---
     let tasks = [];
@@ -1119,9 +1129,10 @@
     }
 
     function handleSession(session) {
+        const modal = document.getElementById('authModal');
         if (session) {
             currentUser = session.user;
-            document.getElementById('authModal').style.display = 'none';
+            modal.style.display = 'none';
             document.getElementById('logoutBtn').style.display = 'block';
             let name = currentUser.user_metadata?.name || 'User';
             document.querySelector('.greeting').innerHTML = `Hey, <span style="color:var(--on-surface);font-weight:700;">${name}</span>`;
@@ -1154,7 +1165,9 @@
                     reminderEnabled: d.reminder_enabled || d.reminderEnabled,
                     reminderTime: d.reminder_time || d.reminderTime,
                     completed: d.completed,
-                    createdAt: d.created_at ? new Date(d.created_at).getTime() : (d.createdAt || Date.now())
+                    createdAt: d.created_at ? new Date(d.created_at).getTime() : (d.createdAt || Date.now()),
+                    subtasks: d.subtasks || [],
+                    focusDuration: d.focus_duration || 25
                 })).sort((a,b) => b.createdAt - a.createdAt);
             }
         } catch (e) {
@@ -2125,7 +2138,7 @@
         if(idx !== -1) {
             tasks.splice(idx, 1);
             saveToLocal();
-            // syncUpsert would need a delete flag or separate delete api, but ignoring for pure local for now as handled in sync
+            syncDelete(id);
         }
     }
 
@@ -2303,10 +2316,13 @@
 
     function updatePomoUI() {
         document.getElementById('pomoPhase').textContent = pomoPhase;
-        const total = (pomoPhase === 'Focus Time') ? 25 * 60 : 5 * 60;
+        const focusDur = pomoTargetTask?.focusDuration || 25;
+        const total = (pomoPhase === 'Focus Time') ? focusDur * 60 : 5 * 60;
         const m = Math.floor(pomoTimeRemaining / 60);
         const s = Math.floor(pomoTimeRemaining % 60);
-        document.getElementById('pomoTime').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        const mStr = m < 10 ? '0' + m : m;
+        const sStr = s < 10 ? '0' + s : s;
+        document.getElementById('pomoTime').textContent = `${mStr}:${sStr}`;
         
         const offset = 283 - (283 * (pomoTimeRemaining / total));
         document.getElementById('pomoRing').style.strokeDashoffset = offset;
