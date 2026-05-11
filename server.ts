@@ -1,24 +1,27 @@
-import dotenv from "dotenv";
-dotenv.config({ override: true });
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import fs from "fs";
-import { GoogleGenAI } from "@google/genai";
+import dotenv from "dotenv";
 
-const PORT = 3000;
+dotenv.config({ override: true });
 
 const app = express();
+const port = 3000;
+
 app.use(express.json());
 
-// AI Client for OpenRouter
-async function callOpenRouter(prompt: string, isJson: boolean = true) {
-  const apiKey = (process.env.OPENROUTER_API_KEY || "").replace(/"/g, '').trim();
-  if (!apiKey) {
-    console.error("CRITICAL: OPENROUTER_API_KEY is missing");
-    throw new Error("AI Configuration Error: API Key missing");
-  }
+// Helper to clean AI response
+function cleanJSON(text: string) {
+  return text.replace(/```json/gi, '').replace(/```/g, '').trim();
+}
 
+async function callAI(prompt: string) {
+  const apiKey = (process.env.OPENROUTER_API_KEY || "").replace(/"/g, '').trim();
+  // EXACT model name as per user request
+  const model = "google/gemini-2.0-flash-001";
+
+  console.log(`--- AI Request [${model}] ---`);
+  
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -29,99 +32,59 @@ async function callOpenRouter(prompt: string, isJson: boolean = true) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        "model": "meta-llama/llama-3.1-8b-instruct:free",
-        "messages": [{ "role": "user", "content": prompt }],
-        ...(isJson ? { "response_format": { "type": "json_object" } } : {})
+        model: model,
+        messages: [{ role: "user", content: prompt }]
       })
     });
 
     const data: any = await response.json();
+    
     if (!response.ok) {
-      console.error("OpenRouter API Detailed Error:", data);
-      const detail = data.error?.metadata?.raw || data.error?.message || JSON.stringify(data.error);
-      throw new Error(detail);
+      console.error("OpenRouter Error:", JSON.stringify(data));
+      throw new Error(data.error?.message || "API Error");
     }
 
-    if (!data.choices || !data.choices[0]) {
-      throw new Error("Empty response from AI provider");
-    }
-
-    let text = data.choices[0].message.content;
-    return text.trim().replace(/```json/gi, '').replace(/```/g, '').trim();
-  } catch (e: any) {
-    console.error("Fetch Exception during OpenRouter call:", e.message);
-    throw e;
+    const content = data.choices[0].message.content;
+    console.log("AI Response:", content);
+    return cleanJSON(content);
+  } catch (err: any) {
+    console.error("AI call failed:", err.message);
+    throw err;
   }
 }
 
-// API Routes
 app.post("/api/parse-task", async (req, res) => {
   try {
     const { input } = req.body;
-    const prompt = `Extract task details from this sentence and output ONLY pure JSON:\nSentence: "${input}"\nFormat: {"title":"(short Title)", "date":"(YYYY-MM-DD)", "time":"(HH:MM)", "priority":"High, Med, or Low", "category":"Work, Personal, Shopping, or Health"}\nToday: ${new Date().toDateString()}`;
-    const text = await callOpenRouter(prompt);
-    res.json(JSON.parse(text));
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    const prompt = `Extract task details from: "${input}". 
+    Return ONLY JSON: { "title": string, "date": "YYYY-MM-DD", "time": "HH:MM", "priority": "High/Med/Low", "category": "Work/Personal/Health/Shopping" }. 
+    Today is ${new Date().toISOString().split('T')[0]}. No extra text.`;
+
+    const result = await callAI(prompt);
+    res.json(JSON.parse(result));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
 app.post("/api/generate-subtasks", async (req, res) => {
   try {
     const { title } = req.body;
-    const prompt = `Generate 3-5 useful subtasks for: "${title}". Return ONLY pure JSON array of strings. Example: ["Step 1", "Step 2"]`;
-    const text = await callOpenRouter(prompt, false);
-    let data;
-    try { data = JSON.parse(text); } catch (e) {
-      const match = text.match(/\[.*\]/s);
-      data = match ? JSON.parse(match[0]) : [];
-    }
-    res.json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    const prompt = `Generate 3 subtasks for: "${title}". Return ONLY a JSON array of strings.`;
+    const result = await callAI(prompt);
+    res.json(JSON.parse(result));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Vite/Static Setup
-let vite: any;
-async function setupVite() {
-  if (process.env.NODE_ENV !== "production") {
-    const { createServer: createViteServer } = await import("vite");
-    vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    if (fs.existsSync(distPath)) app.use(express.static(distPath));
-  }
-}
-setupVite();
-
-app.get('*', async (req, res) => {
-  try {
-    let html: string;
-    if (process.env.NODE_ENV !== "production" && vite) {
-      const template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
-      html = await vite.transformIndexHtml(req.originalUrl, template);
-    } else {
-      const p = path.join(process.cwd(), fs.existsSync(path.join(process.cwd(), 'dist')) ? 'dist/index.html' : 'index.html');
-      html = fs.readFileSync(p, 'utf-8');
-    }
-    
-    // Inject Env Vars
-    const sbUrl = (process.env.VITE_SUPABASE_URL || "").replace(/"/g, '').trim();
-    const sbKey = (process.env.VITE_SUPABASE_ANON_KEY || "").replace(/"/g, '').trim();
-    html = html.replace(/%VITE_SUPABASE_URL%/g, sbUrl).replace(/%VITE_SUPABASE_ANON_KEY%/g, sbKey);
-    
-    res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
-  } catch (e: any) {
-    res.status(500).send(e.message);
-  }
+app.get("*", (req, res) => {
+  const indexPath = path.join(process.cwd(), "index.html");
+  let html = fs.readFileSync(indexPath, "utf8");
+  const sbUrl = (process.env.VITE_SUPABASE_URL || "").replace(/"/g, '').trim();
+  const sbKey = (process.env.VITE_SUPABASE_ANON_KEY || "").replace(/"/g, '').trim();
+  html = html.replace(/%VITE_SUPABASE_URL%/g, sbUrl).replace(/%VITE_SUPABASE_ANON_KEY%/g, sbKey);
+  res.send(html);
 });
 
-// For local dev
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => console.log(`Dev server: http://localhost:${PORT}`));
-}
-
-// Export for Vercel
-export default app;
+app.listen(port, () => console.log(`Server running on port ${port}`));

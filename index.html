@@ -44,7 +44,10 @@
             display: flex;
             justify-content: center;
             min-height: 100vh;
+            min-height: 100dvh;
             transition: background-color 0.3s, color 0.3s;
+            overflow: hidden;
+            scroll-behavior: smooth;
         }
 
         .app-container {
@@ -58,6 +61,7 @@
             flex-direction: column;
             overflow: hidden;
             box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            margin: 0 auto;
         }
 
         /* Header */
@@ -66,11 +70,24 @@
         .logo-icon { width: 40px; height: 40px; background: var(--primary-light); color: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
         h1 { font-size: 24px; font-weight: 700; color: var(--primary); line-height: 1.2; }
         .greeting { font-size: 12px; font-weight: 500; color: var(--on-surface-variant); }
-        .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent; color: var(--primary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform, background; }
-        .icon-btn:hover, .icon-btn:active { background: var(--outline-variant); transform: scale(0.95); }
+        .icon-btn { width: 44px; height: 44px; border-radius: 50%; border: none; background: transparent; color: var(--primary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform, background; }
+        .icon-btn:hover { background: var(--outline-variant); }
+        .icon-btn:active { background: var(--outline-variant); transform: scale(0.9); }
 
         /* Main Content Scroll */
-        main { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 24px 100px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; will-change: scroll-position; transform: translateZ(0); backface-visibility: hidden; }
+        main { 
+            flex: 1; 
+            overflow-y: auto; 
+            overflow-x: hidden; 
+            padding: 0 24px 120px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+            scroll-behavior: smooth; 
+            -webkit-overflow-scrolling: touch; 
+            scrollbar-width: none;
+            overscroll-behavior-y: contain;
+        }
         main::-webkit-scrollbar { display: none; }
 
         /* Progress Card */
@@ -129,8 +146,9 @@
         .meta-item span.icon { font-size: 16px; }
         .task-cat { background: var(--primary-light); color: var(--primary); padding: 2px 10px; border-radius: 99px; font-weight: 500; font-size: 11px; }
 
-        .task-actions { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--outline-variant); }
-        .task-actions button { background: none; border: none; font-size: 18px; color: var(--on-surface-variant); cursor: pointer; padding: 4px; transition: color 0.2s; }
+        .task-actions { display: flex; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--outline-variant); }
+        .task-actions button { background: none; border: none; font-size: 20px; color: var(--on-surface-variant); cursor: pointer; padding: 10px; border-radius: 12px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .task-actions button:active { background: var(--outline-variant); transform: scale(0.9); }
         .task-actions button:hover { color: var(--primary); }
         .task-actions button.del-btn:hover { color: var(--error); }
 
@@ -141,17 +159,64 @@
         .empty-state p { font-size: 14px; color: var(--on-surface-variant); max-width: 250px; margin: 0 auto; }
 
         /* FAB */
-        .fab { position: absolute; bottom: 90px; right: 24px; width: 60px; height: 60px; border-radius: 50%; background: var(--primary); color: #fff; box-shadow: 0 8px 24px rgba(77, 65, 223, 0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 20; transition: transform 0.2s, background 0.2s; }
-        .fab:hover, .fab:active { transform: scale(0.95); background: #3c32b5; }
-        .fab span { font-size: 32px; font-weight: 300; }
+        .fab { 
+            position: absolute; 
+            bottom: calc(90px + env(safe-area-inset-bottom, 0px)); 
+            right: 24px; 
+            width: 56px; 
+            height: 56px; 
+            border-radius: 50%; 
+            background: var(--primary); 
+            color: #fff; 
+            box-shadow: 0 8px 24px rgba(77, 65, 223, 0.4); 
+            border: none; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 20; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+        .fab:hover { background: #3c32b5; }
+        .fab:active { transform: scale(0.9) rotate(5deg); background: #3c32b5; }
+        .fab span { font-size: 28px; font-weight: 300; }
 
         /* Bottom Nav */
-        nav { position: absolute; bottom: 0; width: 100%; height: 75px; background: var(--surface); border-radius: 24px 24px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.05); display: flex; justify-content: space-around; align-items: center; z-index: 10; padding: 0 10px; border-top: 1px solid var(--outline-variant); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--on-surface-variant); cursor: pointer; width: 60px; padding: 8px 0; border-radius: 16px; transition: all 0.2s; }
-        .nav-item span.icon { font-size: 24px; }
-        .nav-item span.label { font-size: 11px; font-weight: 500; }
+        nav { 
+            position: absolute; 
+            bottom: 0; 
+            width: 100%; 
+            height: calc(75px + env(safe-area-inset-bottom, 0px)); 
+            background: var(--surface); 
+            border-radius: 24px 24px 0 0; 
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05); 
+            display: flex; 
+            justify-content: space-around; 
+            align-items: flex-start; 
+            z-index: 10; 
+            padding: 12px 10px 0; 
+            border-top: 1px solid var(--outline-variant);
+            user-select: none;
+        }
+        .nav-item { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 4px; 
+            color: var(--on-surface-variant); 
+            cursor: pointer; 
+            width: 70px; 
+            padding: 8px 0; 
+            border-radius: 16px; 
+            transition: all 0.2s;
+            position: relative;
+        }
+        .nav-item:active { background: var(--outline-variant); transform: scale(0.95); }
+        .nav-item span.icon { font-size: 24px; transition: transform 0.2s; }
+        .nav-item span.label { font-size: 11px; font-weight: 600; }
         .nav-item.active { color: var(--primary); }
-        .nav-item.active span.icon { font-variation-settings: 'FILL' 1; }
+        .nav-item.active span.icon { font-variation-settings: 'FILL' 1; transform: translateY(-2px); }
 
         /* Bottom Sheet Modal */
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 4000; opacity: 0; pointer-events: none; transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(2px); will-change: opacity; }
@@ -248,6 +313,12 @@
         @keyframes taskEnter { 
             from { opacity: 0; transform: scale(0.9) translateY(20px); } 
             to { opacity: 1; transform: scale(1) translateY(0); } 
+        }
+
+        .view-transition { animation: fadeInScale 0.3s cubic-bezier(0.4, 0, 0.2, 1) both; }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
         }
 
         .bg-fx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; backface-visibility: hidden; perspective: 1000px; transform: translateZ(0); }
@@ -350,6 +421,8 @@
     </div>
     
     <audio id="alarmAudio" loop src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+    <audio id="addSound" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" preload="auto"></audio>
+    <audio id="completeSound" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3" preload="auto"></audio>
 
 <div class="app-container">
     
@@ -1049,8 +1122,11 @@
         if (lastResetStr !== todayStr) {
             let changedTasks = [];
             tasks.forEach(t => {
-                if (t.taskType === 'daily' && t.completed) {
+                if (t.taskType === 'daily' && (t.completed || (t.subtasks && t.subtasks.some(st => st.completed)))) {
                     t.completed = false;
+                    if (t.subtasks) {
+                        t.subtasks.forEach(st => st.completed = false);
+                    }
                     changedTasks.push(t);
                 }
             });
@@ -1264,7 +1340,7 @@
                 
                 return `
                 <div class="task-card ${task.completed ? 'completed' : ''} ${isNew ? 'task-animate-enter' : ''}" id="task-${task.id}">
-                    <div class="checkbox ${task.completed ? 'checked' : ''}" onclick="toggleComplete(${task.id})">
+                    <div class="checkbox ${task.completed ? 'checked' : ''}" onclick="toggleComplete('${task.id}')">
                         ${task.completed ? '<span class="material-symbols-outlined" style="font-size:18px">check</span>' : ''}
                     </div>
                     <div class="task-content">
@@ -1283,7 +1359,7 @@
                         <div class="task-subtasks-view" style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
                             ${task.subtasks.map((st, idx) => `
                             <div style="display: flex; align-items: flex-start; gap: 8px;">
-                                <div class="checkbox ${st.completed ? 'checked' : ''}" style="width: 18px; height: 18px; border-width: 1.5px; margin-top: 0px;" onclick="toggleSubtaskStatus(${task.id}, ${idx}); event.stopPropagation();">
+                                <div class="checkbox ${st.completed ? 'checked' : ''}" style="width: 18px; height: 18px; border-width: 1.5px; margin-top: 0px;" onclick="toggleSubtaskStatus('${task.id}', ${idx}); event.stopPropagation();">
                                     ${st.completed ? '<span class="material-symbols-outlined" style="font-size:14px">check</span>' : ''}
                                 </div>
                                 <span style="font-size: 13px; transform: translateY(1px); text-decoration: ${st.completed ? 'line-through' : 'none'}; color: var(--on-surface); opacity: ${st.completed ? '0.6' : '1'}; transition: opacity 0.2s;">
@@ -1294,9 +1370,9 @@
                         </div>
                         ` : ''}
                         <div class="task-actions">
-                            <button onclick="startPomodoro(${task.id})" title="Focus Timer"><span class="material-symbols-outlined">timer</span></button>
-                            <button onclick="editTask(${task.id})"><span class="material-symbols-outlined">edit</span></button>
-                            <button class="del-btn" onclick="confirmDelete(${task.id})"><span class="material-symbols-outlined">delete</span></button>
+                            <button onclick="startPomodoro('${task.id}')" title="Focus Timer"><span class="material-symbols-outlined">timer</span></button>
+                            <button onclick="editTask('${task.id}')"><span class="material-symbols-outlined">edit</span></button>
+                            <button class="del-btn" onclick="confirmDelete('${task.id}')"><span class="material-symbols-outlined">delete</span></button>
                             ${sortMode === 'manual' ? `<button class="drag-handle-task" style="margin-left: auto; cursor: grab;"><span class="material-symbols-outlined">drag_indicator</span></button>` : ''}
                         </div>
                     </div>
@@ -1364,6 +1440,7 @@
             if (card) {
                 if (task.completed) {
                     showConfetti(card);
+                    playSound('complete');
                 }
                 if (currentFilter === 'Active' || currentFilter === 'Completed') {
                     // Hide smoothly
@@ -1457,9 +1534,19 @@
             syncUpsert(tasks.find(t => t.id == editId));
         } else {
             syncUpsert(taskData);
+            playSound('add');
         }
         closeDrawer();
         renderTasks();
+    }
+
+    function playSound(type) {
+        const sound = document.getElementById(type === 'add' ? 'addSound' : 'completeSound');
+        if (sound) {
+            sound.volume = 0.5;
+            sound.currentTime = 0;
+            sound.play().catch(e => console.log('Sound playback blocked:', e));
+        }
     }
 
     function editTask(id) {
@@ -1580,6 +1667,16 @@
     window.deleteSubtask = function(i) {
         currentSubtasks.splice(i, 1);
         renderSubtasks();
+    };
+
+    window.toggleSubtaskStatus = function(taskId, subtaskIdx) {
+        const task = tasks.find(t => String(t.id) === String(taskId));
+        if (task && task.subtasks && task.subtasks[subtaskIdx]) {
+            task.subtasks[subtaskIdx].completed = !task.subtasks[subtaskIdx].completed;
+            saveToLocal();
+            syncUpsert(task);
+            renderTasks();
+        }
     };
 
     function openAITaskModal() {
@@ -1770,30 +1867,40 @@
     }
 
     function navTo(page) {
-        document.getElementById('homeView').style.display = 'none';
-        document.getElementById('calendarView').style.display = 'none';
-        document.getElementById('statsView').style.display = 'none';
-        document.getElementById('profileView').style.display = 'none';
+        const views = ['homeView', 'calendarView', 'statsView', 'profileView'];
+        views.forEach(v => {
+            const el = document.getElementById(v);
+            el.style.display = 'none';
+            el.classList.remove('view-transition');
+        });
         
         document.querySelectorAll('#bottomNav .nav-item').forEach(el => el.classList.remove('active'));
 
+        let targetId = '';
+        let navIdx = 0;
+
+        if(page === 'home') { targetId = 'homeView'; navIdx = 0; }
+        else if (page === 'calendar') { targetId = 'calendarView'; navIdx = 1; }
+        else if (page === 'stats') { targetId = 'statsView'; navIdx = 2; }
+        else if (page === 'profile') { targetId = 'profileView'; navIdx = 3; }
+
+        const target = document.getElementById(targetId);
+        target.style.display = (page === 'home') ? 'block' : 'flex';
+        target.classList.add('view-transition');
+        document.querySelectorAll('#bottomNav .nav-item')[navIdx].classList.add('active');
+
         if(page === 'home') {
-            document.getElementById('homeView').style.display = 'block';
-            document.querySelectorAll('#bottomNav .nav-item')[0].classList.add('active');
             setFilter('All', document.querySelector('.cat-chip'));
         } else if (page === 'calendar') {
-            document.getElementById('calendarView').style.display = 'flex';
-            document.querySelectorAll('#bottomNav .nav-item')[1].classList.add('active');
             renderCalendar();
         } else if (page === 'stats') {
-            document.getElementById('statsView').style.display = 'flex';
-            document.querySelectorAll('#bottomNav .nav-item')[2].classList.add('active');
             renderStats();
         } else if (page === 'profile') {
-            document.getElementById('profileView').style.display = 'flex';
-            document.querySelectorAll('#bottomNav .nav-item')[3].classList.add('active');
             renderProfile();
         }
+        
+        // Scroll main to top when switching pages
+        document.getElementById('mainContent').scrollTo({ top: 0, behavior: 'instant' });
     }
 
     // --- Calendar Logic ---
@@ -2087,12 +2194,12 @@
         if (deltaX > 80) {
             // Swipe Right: Complete
             swipeTarget.style.transform = `translateX(100vw)`;
-            const id = swipeTarget.id.split('-')[1];
+            const id = swipeTarget.id.split('task-')[1];
             setTimeout(() => toggleComplete(id), 300);
         } else if (deltaX < -80) {
             // Swipe Left: Delete
             swipeTarget.style.transform = `translateX(-100vw)`;
-            const id = swipeTarget.id.split('-')[1];
+            const id = swipeTarget.id.split('task-')[1];
             setTimeout(() => { doDelete(id); renderTasks(); }, 300);
         } else {
             // Snap back
