@@ -9,6 +9,7 @@ const app = express();
 const port = 3000;
 
 app.use(express.json());
+app.use(express.static(process.cwd()));
 
 // Helper to clean AI response
 function cleanJSON(text: string) {
