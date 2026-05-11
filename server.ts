@@ -29,7 +29,7 @@ async function callOpenRouter(prompt: string, isJson: boolean = true) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        "model": "google/gemini-2.0-flash-001",
+        "model": "mistralai/mistral-7b-instruct:free", // This is a reliable free model
         "messages": [{ "role": "user", "content": prompt }],
         ...(isJson ? { "response_format": { "type": "json_object" } } : {})
       })
