@@ -17,10 +17,6 @@
       "dest": "server.ts"
     },
     {
-      "src": "/(app-brand-logo.png|favicon.png)",
-      "dest": "/$1"
-    },
-    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
