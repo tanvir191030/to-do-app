@@ -1509,16 +1509,27 @@
 
             els.list.innerHTML = htmlStr;
         }
-        updateProgress();
+        updateProgress(filtered);
         justAddedId = null;
     }
 
-    function updateProgress() {
-        const now = new Date();
-        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        const todayTasks = tasks.filter(t => t.date === todayStr || t.taskType === 'daily');
-        const total = todayTasks.length;
-        const done = todayTasks.filter(t => t.completed).length;
+    function updateProgress(filteredTasks) {
+        // If filteredTasks not provided (manual call), recalculate it
+        if(!filteredTasks) {
+            const y = selectedFocusDate.getFullYear();
+            const m = String(selectedFocusDate.getMonth() + 1).padStart(2, '0');
+            const d = String(selectedFocusDate.getDate()).padStart(2, '0');
+            const localFocus = `${y}-${m}-${d}`;
+
+            filteredTasks = tasks.filter(t => {
+                if(t.date && t.date !== localFocus) return false;
+                if(!t.date && selectedFocusDate.toDateString() !== new Date().toDateString()) return false;
+                return true;
+            });
+        }
+
+        const total = filteredTasks.length;
+        const done = filteredTasks.filter(t => t.completed).length;
         
         els.totalCount.textContent = total;
         els.doneCount.textContent = done;
@@ -1530,6 +1541,10 @@
         const offset = 200 - (pct / 100) * 200;
         els.ring.style.strokeDashoffset = offset;
         
+        // Update Title based on date
+        const isToday = selectedFocusDate.toDateString() === new Date().toDateString();
+        document.querySelector('.progress-text h2').textContent = isToday ? "Today's Progress" : "Day's Progress";
+
         if(total === 0) els.msg.textContent = "Let's get started!";
         else if(pct === 100) els.msg.textContent = "All done, great job!";
         else els.msg.textContent = "You're doing great!";
