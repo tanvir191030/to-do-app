@@ -705,10 +705,12 @@
     <!-- Voice FAB -->
     <!-- Voice FAB -->
     <button class="fab" id="voiceBtn" 
-            style="bottom: 160px; right: 28px; width: 44px; height: 44px; background: var(--surface); color: var(--primary); border: 2px solid var(--primary); z-index: 1000; transition: all 0.2s;"
-            onpointerdown="handleVoiceStart(event)" 
-            onpointerup="handleVoiceEnd(event)"
-            onpointerleave="handleVoiceEnd(event)">
+            style="bottom: 160px; right: 28px; width: 44px; height: 44px; background: var(--surface); color: var(--primary); border: 2px solid var(--primary); z-index: 1000; transition: all 0.2s; touch-action: none;"
+            onmousedown="handleVoiceStart(event)" 
+            onmouseup="handleVoiceEnd(event)"
+            onmouseleave="handleVoiceEnd(event)"
+            ontouchstart="handleVoiceStart(event)"
+            ontouchend="handleVoiceEnd(event)">
         <span class="material-symbols-outlined" style="font-size: 24px;">mic</span>
     </button>
 
