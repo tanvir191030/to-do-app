@@ -373,11 +373,8 @@
             to { opacity: 1; transform: scale(1); }
         }
 
-        .bg-fx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; display: none; }
-        @media (min-width: 768px) {
-            .bg-fx { display: block; backface-visibility: hidden; perspective: 1000px; transform: translateZ(0); }
-        }
-        .snow-wrapper, .sun-birds-wrapper { position: absolute; inset: 0; width: 100%; height: 100%; display: none; backface-visibility: hidden; transform: translateZ(0); }
+        .bg-fx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; will-change: transform; transform: translateZ(0); }
+        .snow-wrapper, .sun-birds-wrapper { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
         [data-theme="dark"] .snow-wrapper { display: block; }
         [data-theme="light"] .sun-birds-wrapper { display: block; }
 
@@ -1098,22 +1095,26 @@
         fx.className = 'bg-fx';
         fx.id = 'bgFx';
         
+        const isMobile = window.innerWidth < 768;
+        const snowCount = isMobile ? 15 : 40;
+        const birdCount = isMobile ? 2 : 5;
+
         let snowHtml = '<div class="snow-wrapper">';
-        for(let i=0; i<40; i++) {
-            let size = Math.random() * 4 + 2;
+        for(let i=0; i<snowCount; i++) {
+            let size = Math.random() * (isMobile ? 3 : 4) + 2;
             let left = Math.random() * 100;
-            let dur = Math.random() * 4 + 4;
+            let dur = Math.random() * 4 + (isMobile ? 6 : 4);
             let del = Math.random() * 5;
             snowHtml += `<div class="snowflake" style="width:${size}px;height:${size}px;left:${left}%;animation-duration:${dur}s;animation-delay:-${del}s;"></div>`;
         }
         snowHtml += '</div>';
 
         let natureHtml = '<div class="sun-birds-wrapper"><div class="sun"></div>';
-        for(let i=0; i<5; i++) {
+        for(let i=0; i<birdCount; i++) {
             let top = Math.random() * 30 + 5; 
             let dur = Math.random() * 12 + 15; 
             let del = Math.random() * 10;
-            let scale = Math.random() * 0.4 + 0.4;
+            let scale = Math.random() * 0.3 + 0.4;
             natureHtml += `<div class="bird" style="top:${top}%;animation-duration:${dur}s;animation-delay:-${del}s;">
                 <svg style="transform:scale(${scale})" viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M22 6c-3 0-5.5 1.5-8 4-2.5-2.5-5-4-8-4-2 0-3.5 1-4.5 2.5C2.5 10 4 11 6 11c2 0 3.5-1 5-2.5 1-1.5 2-2 3-2s2 .5 3 2c1.5 1.5 3 2.5 5 2.5 2 0 3.5-1 4.5-2.5C25.5 7 24 6 22 6z"/></svg>
             </div>`;
