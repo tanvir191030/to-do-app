@@ -110,8 +110,13 @@ Example: ["Write script", "Record video", "Edit"]
       }
 
       // Manually replace placeholders if they still exist
-      html = html.replace(/%VITE_SUPABASE_URL%/g, process.env.VITE_SUPABASE_URL || "");
-      html = html.replace(/%VITE_SUPABASE_ANON_KEY%/g, process.env.VITE_SUPABASE_ANON_KEY || "");
+      const sbUrl = (process.env.VITE_SUPABASE_URL || "").replace(/"/g, '').trim();
+      const sbKey = (process.env.VITE_SUPABASE_ANON_KEY || "").replace(/"/g, '').trim();
+      
+      if (!sbUrl) console.warn("WARNING: VITE_SUPABASE_URL is missing in process.env");
+      
+      html = html.replace(/%VITE_SUPABASE_URL%/g, sbUrl);
+      html = html.replace(/%VITE_SUPABASE_ANON_KEY%/g, sbKey);
 
       res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
     } catch (e) {
