@@ -739,6 +739,7 @@
             </button>
         </div>
 
+        <div style="font-size: 10px; color: var(--on-surface-variant); opacity: 0.5; margin-top: 16px;">v3.0.1 Mobile Optimized</div>
     </main>
 
     <!-- FAB -->
@@ -2518,45 +2519,34 @@
     let recordingType = null; // 'hold' or 'toggle'
 
     function initRecognition() {
-        if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) return;
+        if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+            showSnackbar('Voice not supported in this browser', 'OK', hideSnackbar);
+            return false;
+        }
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = false;
-        recognition.lang = navigator.language || 'en-US';
+        recognition.lang = 'en-US';
 
         recognition.onstart = function() {
             isRecording = true;
-            const btn = document.getElementById('voiceBtn');
-            btn.style.background = '#ff4757';
-            btn.style.color = '#fff';
-            btn.style.borderColor = '#ff4757';
-            btn.classList.add('mic-pulsing');
-            btn.querySelector('span').textContent = 'mic_none';
+            updateMicUI(true);
             showSnackbar('Listening...', 'OK', hideSnackbar);
-            
-            if(window.micTimeout) clearTimeout(window.micTimeout);
-            window.micTimeout = setTimeout(() => {
-                if(isRecording) {
-                    showSnackbar('No speech heard', 'Retry', () => {});
-                    stopVoice();
-                }
-            }, 8000);
         };
 
         recognition.onerror = function(event) {
             console.error('Mic Error:', event.error);
             isRecording = false;
             let msg = 'Mic: ' + event.error;
-            if(event.error === 'not-allowed') msg = 'Mic blocked. Please allow access in settings.';
-            if(event.error === 'no-speech') msg = 'No speech detected.';
+            if(event.error === 'not-allowed') msg = 'Permission denied!';
             showSnackbar(msg, 'OK', hideSnackbar);
-            resetVoiceUI();
+            updateMicUI(false);
         };
 
         recognition.onend = function() {
             isRecording = false;
-            resetVoiceUI();
+            updateMicUI(false);
         };
 
         recognition.onresult = function(event) {
@@ -2564,6 +2554,63 @@
             showSnackbar(`Heard: "${transcript}"`, 'OK', hideSnackbar);
             handleVoiceTask(transcript);
         };
+        return true;
+    }
+
+    function updateMicUI(active) {
+        const btn = document.getElementById('voiceBtn');
+        if (!btn) return;
+        if (active) {
+            btn.style.background = '#ff4757';
+            btn.style.color = '#fff';
+            btn.style.borderColor = '#ff4757';
+            btn.classList.add('mic-pulsing');
+            btn.querySelector('span').textContent = 'mic_none';
+        } else {
+            btn.style.background = 'var(--surface)';
+            btn.style.color = 'var(--primary)';
+            btn.style.borderColor = 'var(--primary)';
+            btn.classList.remove('mic-pulsing');
+            btn.querySelector('span').textContent = 'mic';
+        }
+    }
+
+    window.handleVoiceStart = async function(e) {
+        if(e.cancelable) e.preventDefault();
+        
+        if(isRecording) {
+            stopVoice();
+            return;
+        }
+
+        // Try permission first
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(t => t.stop());
+        } catch (err) {
+            showSnackbar('Mic permission required!', 'OK', hideSnackbar);
+            return;
+        }
+
+        if (initRecognition()) {
+            try {
+                recognition.start();
+            } catch (err) {
+                stopVoice();
+            }
+        }
+    };
+
+    window.handleVoiceEnd = function(e) {
+        // No-op for now to keep it simple toggle
+    };
+
+    function stopVoice() {
+        if (recognition) {
+            try { recognition.stop(); } catch(e) {}
+        }
+        isRecording = false;
+        updateMicUI(false);
     }
 
     function initRefreshHandler() {
@@ -2604,75 +2651,6 @@
             }
             pulling = false;
         });
-    }
-
-    function resetVoiceUI() {
-        const btn = document.getElementById('voiceBtn');
-        if (btn) {
-            btn.style.background = 'var(--surface)';
-            btn.style.color = 'var(--primary)';
-            btn.style.borderColor = 'var(--primary)';
-            btn.classList.remove('mic-pulsing');
-            btn.querySelector('span').textContent = 'mic';
-        }
-        if(window.micTimeout) clearTimeout(window.micTimeout);
-    }
-
-    window.handleVoiceStart = async function(e) {
-        if(e.cancelable) e.preventDefault();
-        
-        if(isRecording) {
-            stopVoice();
-            return;
-        }
-
-        // Try to trigger permission if not granted
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            stream.getTracks().forEach(t => t.stop());
-        } catch (err) {
-            showSnackbar('Mic permission required!', 'OK', hideSnackbar);
-            return;
-        }
-
-        voiceStartTime = Date.now();
-        recordingType = 'hold';
-        startVoice();
-    };
-
-    window.handleVoiceEnd = function(e) {
-        if(!isRecording || recordingType === 'toggle') return;
-        const duration = Date.now() - voiceStartTime;
-        if(duration > 400) {
-            stopVoice();
-        } else {
-            recordingType = 'toggle';
-        }
-    };
-
-    function startVoice() {
-        if (!recognition) initRecognition();
-        if (!recognition) {
-            showSnackbar('Voice not supported', 'OK', hideSnackbar);
-            return;
-        }
-        try { 
-            recognition.start(); 
-        } catch(e) {
-            console.log('Restarting mic...');
-            initRecognition();
-            try { recognition.start(); } catch(err) { console.error(err); }
-        }
-    }
-
-    function stopVoice() {
-        if (recognition) {
-            try { recognition.stop(); } catch(e) {}
-        }
-        isRecording = false;
-        resetVoiceUI();
-        recordingType = null;
-        voiceStartTime = 0;
     }
 
     async function handleVoiceTask(transcript) {
