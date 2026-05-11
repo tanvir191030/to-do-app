@@ -1467,7 +1467,7 @@
         }
     }
 
-    async function deleteTask(id) {
+    async function confirmDelete(id) {
         if (!confirm('Delete this task?')) return;
         
         // Optimistic UI update
