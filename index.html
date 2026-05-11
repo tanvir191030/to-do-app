@@ -1137,6 +1137,15 @@
     }
 
     function init() {
+        // Register SW for Offline
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+        // Request Notifications
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+
         const theme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', theme);
         
@@ -1333,11 +1342,12 @@
     }
 
     function triggerNotification(task, message = 'It is time!', showAlarm = true) {
-        if (Notification.permission === 'granted') {
-            new Notification(`High Priority: ${task.title}`, {
+        if ("Notification" in window && Notification.permission === 'granted') {
+            new Notification(`${task.priority} Priority: ${task.title}`, {
                 body: message,
-                icon: '/favicon.ico',
-                vibrate: [200, 100, 200]
+                icon: '/public/app-brand-logo.png',
+                vibrate: [200, 100, 200],
+                badge: '/public/app-brand-logo.png'
             });
         }
         
@@ -1398,9 +1408,13 @@
                     subtasks: d.subtasks || [],
                     focusDuration: d.focus_duration || 25
                 })).sort((a,b) => b.createdAt - a.createdAt);
+                // Sync to local
+                localStorage.setItem('doit_tasks_cache', JSON.stringify(tasks));
             }
         } catch (e) {
-            console.error('Supabase load error:', e);
+            console.warn('Offline mode: Loading tasks from local cache');
+            const cached = localStorage.getItem('doit_tasks_cache');
+            if (cached) tasks = JSON.parse(cached);
         }
         scheduleReminders();
         renderTasks();
