@@ -47,26 +47,36 @@
             min-height: 100vh;
             min-height: 100dvh;
             transition: background-color 0.3s, color 0.3s;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior-y: auto;
             scroll-behavior: smooth;
         }
 
         .app-container {
             width: 100%;
             max-width: 420px;
-            height: 100vh;
-            height: 100dvh;
+            min-height: 100vh;
+            min-height: 100dvh;
             background: var(--bg);
             position: relative;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
             box-shadow: 0 0 20px rgba(0,0,0,0.05);
             margin: 0 auto;
         }
 
         /* Header */
-        header { padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; background: var(--bg); z-index: 10; }
+        header { 
+            padding: 16px 24px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: var(--bg); 
+            z-index: 100; 
+            position: sticky; 
+            top: 0;
+        }
         .logo-area { display: flex; align-items: center; gap: 12px; }
         .logo-icon { width: 44px; height: 44px; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .logo-icon img { width: 100%; height: 100%; object-fit: cover; }
@@ -79,16 +89,10 @@
         /* Main Content Scroll */
         main { 
             flex: 1; 
-            overflow-y: auto; 
-            overflow-x: hidden; 
             padding: 0 24px 120px; 
             display: flex; 
             flex-direction: column; 
             gap: 20px; 
-            scroll-behavior: smooth; 
-            -webkit-overflow-scrolling: touch; 
-            scrollbar-width: none;
-            overscroll-behavior-y: auto;
         }
         main::-webkit-scrollbar { display: none; }
 
@@ -186,9 +190,10 @@
 
         /* Bottom Nav */
         nav { 
-            position: absolute; 
+            position: fixed; 
             bottom: 0; 
             width: 100%; 
+            max-width: 420px;
             height: calc(75px + env(safe-area-inset-bottom, 0px)); 
             background: var(--surface); 
             border-radius: 24px 24px 0 0; 
@@ -1409,6 +1414,14 @@
         els.list.innerHTML = '';
         const searchQ = els.searchInp.value.toLowerCase();
         
+        // Prevent duplicates in state
+        const uniqueIds = new Set();
+        tasks = tasks.filter(t => {
+            if (uniqueIds.has(String(t.id))) return false;
+            uniqueIds.add(String(t.id));
+            return true;
+        });
+
         let filtered = tasks.filter(t => {
             if(searchQ && !t.title.toLowerCase().includes(searchQ)) return false;
             
@@ -2391,13 +2404,19 @@
             showSnackbar(`Task deleted`, 'Undo', () => {
                 // Restore logic
                 if(pendingDeleteTask) {
-                    tasks.splice(pendingDeleteIdx, 0, pendingDeleteTask);
+                    // Duplicate check
+                    const exists = tasks.find(t => String(t.id) === String(pendingDeleteTask.id));
+                    if(!exists) {
+                        tasks.splice(pendingDeleteIdx, 0, pendingDeleteTask);
+                    }
+                    
                     const restoredId = pendingDeleteTask.id;
                     pendingDeleteTask = null;
                     pendingDeleteIdx = null;
                     clearTimeout(deleteTimeout);
                     deleteTimeout = null;
                     hideSnackbar();
+                    saveToLocal();
                     renderTasks();
                     // Optional: scroll to restored task
                     setTimeout(() => {
