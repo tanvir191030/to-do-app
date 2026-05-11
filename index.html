@@ -549,10 +549,35 @@
         }
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
+        /* Toast / Undo */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--surface);
+            color: var(--on-surface);
+            padding: 12px 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 2000;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid var(--outline-variant);
+        }
+        .toast.active { transform: translateX(-50%) translateY(0); }
+        .undo-btn { color: var(--primary); font-weight: 700; background: none; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
+    <div id="undoToast" class="toast">
+        <span id="toastMsg">Task completed</span>
+        <button class="undo-btn" onclick="undoAction()">Undo</button>
+    </div>
 
     <!-- Auth Section -->
     <div id="authModal" style="display: none;">
@@ -577,7 +602,13 @@
         <header>
             <div class="greeting">
                 <p id="todayDate">Mon, Jan 01</p>
-                <h1 class="greeting-text">Hey, User</h1>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <h1 class="greeting-text">Hey, User</h1>
+                    <div id="streakBadge" style="display:flex; align-items:center; gap:4px; background:var(--primary-container); color:var(--primary); padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700;">
+                        <span class="material-symbols-outlined" style="font-size:16px;">local_fire_department</span>
+                        <span id="streakCount">0</span>
+                    </div>
+                </div>
             </div>
             <div class="top-actions">
                 <button class="icon-btn" onclick="toggleSearch()"><span class="material-symbols-outlined">search</span></button>
@@ -735,6 +766,7 @@
     <!-- Audio Assets -->
     <audio id="addSound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
     <audio id="completeSound" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
+    <audio id="undoSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
     <audio id="alarmDefault" src="https://assets.mixkit.co/active_storage/sfx/1005/1005-preview.mp3" loop></audio>
     <audio id="alarmGentle" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" loop></audio>
     <audio id="alarmUrgent" src="https://assets.mixkit.co/active_storage/sfx/995/995-preview.mp3" loop></audio>
@@ -760,6 +792,7 @@
         let selectedFocusDate = new Date();
         let authMode = 'signup';
         let justAddedId = null;
+        let lastAction = null; // for Undo
 
         const els = {
             list: document.getElementById('taskList'),
@@ -800,7 +833,38 @@
             });
 
             loadTasksFromLocal();
+            updateStreak();
             setInterval(() => scheduleReminders(), 60000);
+        }
+
+        function updateStreak() {
+            const streakData = JSON.parse(localStorage.getItem('doit_streak') || '{"count":0, "lastDate":null}');
+            const today = new Date().toDateString();
+            const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (streakData.lastDate === yesterday.toDateString()) {
+                // Potential to keep streak, but we only increment when first task done today
+            } else if (streakData.lastDate !== today) {
+                // Streak broken if not yesterday and not today
+                // But let's only reset if it was more than 1 day ago
+                const last = streakData.lastDate ? new Date(streakData.lastDate) : null;
+                if (last && (new Date() - last) > 86400000 * 2) {
+                    streakData.count = 0;
+                }
+            }
+            document.getElementById('streakCount').textContent = streakData.count;
+            localStorage.setItem('doit_streak', JSON.stringify(streakData));
+        }
+
+        function incrementStreak() {
+            const streakData = JSON.parse(localStorage.getItem('doit_streak') || '{"count":0, "lastDate":null}');
+            const today = new Date().toDateString();
+            if (streakData.lastDate !== today) {
+                streakData.count++;
+                streakData.lastDate = today;
+                localStorage.setItem('doit_streak', JSON.stringify(streakData));
+                document.getElementById('streakCount').textContent = streakData.count;
+            }
         }
 
         function initFx() {
@@ -955,13 +1019,42 @@
         function toggleComplete(id) {
             const task = tasks.find(t => t.id === id);
             if(task) {
+                const oldStatus = task.completed;
                 task.completed = !task.completed;
+                
                 if(task.completed) {
                     document.getElementById('completeSound').play().catch(()=>{});
                     showConfetti(document.getElementById(`task-${id}`));
+                    incrementStreak();
+                    showToast("Task completed", id, 'complete');
                 }
+                
                 saveToLocal(); syncUpsert(task); renderTasks();
             }
+        }
+
+        let toastTimeout = null;
+        function showToast(msg, id, action) {
+            lastAction = { id, action };
+            const toast = document.getElementById('undoToast');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.add('active');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('active'), 4000);
+        }
+
+        function undoAction() {
+            if (!lastAction) return;
+            const task = tasks.find(t => t.id === lastAction.id);
+            if (task) {
+                if (lastAction.action === 'complete') {
+                    task.completed = false;
+                }
+                document.getElementById('undoSound').play().catch(()=>{});
+                document.getElementById('undoToast').classList.remove('active');
+                saveToLocal(); syncUpsert(task); renderTasks();
+            }
+            lastAction = null;
         }
 
         function toggleSubtaskStatus(taskId, subIndex) {
