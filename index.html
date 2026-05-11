@@ -851,6 +851,7 @@
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span class="form-label" style="margin: 0;">Time:</span>
                     <input type="time" class="date-input" id="remTimeInput" style="flex: 1;" onchange="requestNotificationPermission()">
+                    <button type="button" class="opt-btn" onclick="testAlarmSound()" style="padding: 8px; min-width: 40px; justify-content: center;"><span class="material-symbols-outlined" style="font-size: 18px;">volume_up</span></button>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     <span class="form-label" style="margin: 0; font-size: 11px;">Alarm Sound:</span>
@@ -1316,7 +1317,11 @@
         const now = new Date();
         tasks.forEach(t => {
             if (t.reminderEnabled && t.reminderTime && !t.completed) {
-                let remDate = t.date ? new Date(t.date) : new Date();
+                let remDate = new Date();
+                if (t.date) {
+                    const [y, m, d] = t.date.split('-').map(Number);
+                    remDate = new Date(y, m - 1, d);
+                }
                 const [hr, min] = t.reminderTime.split(':').map(Number);
                 remDate.setHours(hr, min, 0, 0);
 
@@ -1519,6 +1524,21 @@
                 console.error('Delete sync failed:', e);
             }
         }
+    }
+
+    function testAlarmSound() {
+        const audio = document.getElementById('alarmAudio');
+        const soundObj = ALARM_SOUNDS.find(s => s.id === (selectedAlarmSound || 'classic')) || ALARM_SOUNDS[0];
+        audio.src = soundObj.url;
+        audio.play().then(() => {
+            showSnackbar('Sound test: Playing ' + soundObj.name, 'Stop', () => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+            setTimeout(() => { audio.pause(); audio.currentTime = 0; }, 4000);
+        }).catch(e => {
+            showSnackbar('Error: Interaction required to play sound.', 'OK');
+        });
     }
 
     function renderTasks() {
