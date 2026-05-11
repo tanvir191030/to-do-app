@@ -362,6 +362,27 @@
             90% { transform: translate(1px, 2px) rotate(0deg); }
             100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
+        .snackbar {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(150px);
+            background: #323232;
+            color: #fff;
+            padding: 14px 24px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+            z-index: 10000;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            min-width: 300px;
+            justify-content: space-between;
+        }
+        .snackbar.active { transform: translateX(-50%) translateY(0); }
+        .undo-btn { color: var(--primary-light); font-weight: 700; cursor: pointer; text-transform: uppercase; border: none; background: transparent; font-size: 13px; letter-spacing: 0.5px; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -847,6 +868,12 @@
         </div>
 
         <button id="aiParseBtn" class="save-btn" onclick="parseTaskAI()">✨ Auto-Fill Form</button>
+    </div>
+
+    <!-- Snackbar -->
+    <div class="snackbar" id="snackbar">
+        <span id="snackbarMsg">Task deleted</span>
+        <button class="undo-btn" id="snackbarAction">Undo</button>
     </div>
     <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
 
@@ -2214,14 +2241,80 @@
         swipeTarget = null;
     });
 
-    // We need a doDelete helper since confirmDelete shows modal.
+    // --- Delete with Undo Logic ---
+    let deleteTimeout = null;
+    let pendingDeleteTask = null;
+    let pendingDeleteIdx = null;
+
     function doDelete(id) {
         const idx = tasks.findIndex(t => String(t.id) === String(id));
         if(idx !== -1) {
+            // If there's already a pending delete, finalize it first
+            if(deleteTimeout) {
+                actuallyDelete();
+            }
+
+            pendingDeleteTask = tasks[idx];
+            pendingDeleteIdx = idx;
+            
+            // Remove from array temporarily for immediate UI feedback
             tasks.splice(idx, 1);
+            renderTasks();
+            
+            showSnackbar(`Task deleted`, 'Undo', () => {
+                // Restore logic
+                if(pendingDeleteTask) {
+                    tasks.splice(pendingDeleteIdx, 0, pendingDeleteTask);
+                    const restoredId = pendingDeleteTask.id;
+                    pendingDeleteTask = null;
+                    pendingDeleteIdx = null;
+                    clearTimeout(deleteTimeout);
+                    deleteTimeout = null;
+                    hideSnackbar();
+                    renderTasks();
+                    // Optional: scroll to restored task
+                    setTimeout(() => {
+                        const el = document.getElementById(`task-${restoredId}`);
+                        if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                }
+            });
+
+            // Start timer for permanent deletion
+            deleteTimeout = setTimeout(() => {
+                actuallyDelete();
+            }, 5000);
+        }
+    }
+
+    function actuallyDelete() {
+        if(pendingDeleteTask) {
+            const id = pendingDeleteTask.id;
             saveToLocal();
             syncDelete(id);
+            pendingDeleteTask = null;
+            pendingDeleteIdx = null;
+            deleteTimeout = null;
+            hideSnackbar();
         }
+    }
+
+    function showSnackbar(msg, actionLabel, actionFn) {
+        const sb = document.getElementById('snackbar');
+        document.getElementById('snackbarMsg').textContent = msg;
+        const btn = document.getElementById('snackbarAction');
+        btn.textContent = actionLabel;
+        btn.onclick = actionFn;
+        sb.classList.add('active');
+        
+        // Auto hide after 5s if not already handled
+        setTimeout(() => {
+            if(sb.classList.contains('active')) hideSnackbar();
+        }, 5000);
+    }
+
+    function hideSnackbar() {
+        document.getElementById('snackbar').classList.remove('active');
     }
 
     // --- Speech Recognition ---
