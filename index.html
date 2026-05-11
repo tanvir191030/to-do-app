@@ -2560,39 +2560,48 @@
 
         recognition.onresult = function(event) {
             const transcript = event.results[0][0].transcript;
+            showSnackbar(`Heard: "${transcript}"`, 'OK', hideSnackbar);
             handleVoiceTask(transcript);
         };
     }
 
     function initRefreshHandler() {
-        const header = document.getElementById('appHeader');
+        const container = document.querySelector('.app-container');
+        const main = document.querySelector('main');
         const indicator = document.getElementById('refreshIndicator');
         let startY = 0;
         let pulling = false;
 
-        header.addEventListener('touchstart', (e) => {
-            if (window.scrollY === 0) {
+        container.addEventListener('touchstart', (e) => {
+            if (main.scrollTop === 0) {
                 startY = e.touches[0].pageY;
                 pulling = true;
             }
         }, {passive: true});
 
-        header.addEventListener('touchmove', (e) => {
+        container.addEventListener('touchmove', (e) => {
             if (!pulling) return;
             const diff = e.touches[0].pageY - startY;
-            if (diff > 50) {
+            
+            if (diff > 40) {
                 indicator.style.top = '20px';
-                if (diff > 120) {
-                    location.reload();
+                if (diff > 150) {
+                    indicator.innerHTML = '<span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">sync</span> Release to refresh';
+                } else {
+                    indicator.innerHTML = '<span class="material-symbols-outlined">arrow_downward</span> Pull more...';
                 }
             }
         }, {passive: true});
 
-        header.addEventListener('touchend', () => {
-            pulling = false;
-            setTimeout(() => {
+        container.addEventListener('touchend', (e) => {
+            if (!pulling) return;
+            const diff = e.changedTouches[0].pageY - startY;
+            if (diff > 150) {
+                location.reload();
+            } else {
                 indicator.style.top = '-60px';
-            }, 500);
+            }
+            pulling = false;
         });
     }
 
