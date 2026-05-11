@@ -89,25 +89,37 @@ Example: ["Write script", "Record video", "Edit"]
     app.use(vite.middlewares);
   }
 
+  if (process.env.NODE_ENV === "production") {
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+  }
+
   // Catch-all route to serve index.html
   app.get('*', async (req, res, next) => {
     const url = req.originalUrl;
     try {
+      let html: string;
       if (process.env.NODE_ENV !== "production") {
         // In development, read and transform index.html via Vite
-        const html = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
-        const transformedHtml = await vite.transformIndexHtml(url, html);
-        res.status(200).set({ 'Content-Type': 'text/html' }).send(transformedHtml);
+        const template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+        html = await vite.transformIndexHtml(url, template);
       } else {
         // In production, serve from dist
         const distPath = path.join(process.cwd(), 'dist');
-        res.sendFile(path.join(distPath, 'index.html'));
+        html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
       }
+
+      // Manually replace placeholders if they still exist
+      html = html.replace(/%VITE_SUPABASE_URL%/g, process.env.VITE_SUPABASE_URL || "");
+      html = html.replace(/%VITE_SUPABASE_ANON_KEY%/g, process.env.VITE_SUPABASE_ANON_KEY || "");
+
+      res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
     } catch (e) {
       if (vite) vite.ssrFixStacktrace(e);
       next(e);
     }
   });
+
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

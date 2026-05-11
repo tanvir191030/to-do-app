@@ -781,14 +781,13 @@
     // --- Supabase Setup ---
     const SUPABASE_URL = '%VITE_SUPABASE_URL%';
     const SUPABASE_KEY = '%VITE_SUPABASE_ANON_KEY%';
-    const supabaseApp = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-        auth: {
-            persistSession: true,
-            autoRefreshToken: true,
-            detectSessionInUrl: true,
-            storageKey: 'doit-auth-session'
-        }
-    });
+    
+    if (SUPABASE_URL.startsWith('%') || !SUPABASE_URL) {
+        console.error('Supabase URL is not configured! Please check your .env file and restart the server.');
+        alert('Supabase URL is missing. Make sure you have VITE_SUPABASE_URL in your .env file and restart the server.');
+    }
+
+    const supabaseApp = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // --- State Management ---
     let tasks = [];
