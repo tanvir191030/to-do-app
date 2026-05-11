@@ -66,7 +66,7 @@
             width: 100%;
             max-width: 420px;
             height: 100vh;
-            height: 100dvh;
+            height: calc(var(--vh, 1vh) * 100);
             position: relative;
             display: flex;
             flex-direction: column;
@@ -79,7 +79,8 @@
                 position: fixed;
                 inset: 0;
                 max-width: none;
-                height: 100dvh;
+                height: 100vh;
+                height: calc(var(--vh, 1vh) * 100);
             }
         }
 
@@ -243,10 +244,12 @@
 
         /* Bottom Nav */
         nav { 
-            position: absolute; 
+            position: fixed; 
             bottom: 0; 
-            left: 0;
+            left: 50%;
+            transform: translateX(-50%);
             width: 100%; 
+            max-width: 420px;
             height: calc(75px + env(safe-area-inset-bottom, 0px)); 
             background: var(--surface); 
             border-radius: 24px 24px 0 0; 
@@ -258,6 +261,9 @@
             padding: 12px 10px env(safe-area-inset-bottom, 0px); 
             border-top: 1px solid var(--outline-variant);
             user-select: none;
+        }
+        @media (max-width: 480px) {
+            nav { max-width: none; border-radius: 0; }
         }
         .nav-item { 
             display: flex; 
@@ -1136,7 +1142,15 @@
         }
     }
 
+    function adjustHeight() {
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+
     function init() {
+        adjustHeight();
+        window.addEventListener('resize', adjustHeight);
+        
         // Register SW for Offline
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => {});
