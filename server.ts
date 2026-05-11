@@ -12,16 +12,33 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
-  // Wait to initialize Gemini client so startup doesn't fail if the key is missing in other setups
-  let ai: GoogleGenAI | null = null;
-  function getAI() {
-      if (!ai) {
-          if (!process.env.GEMINI_API_KEY) {
-              throw new Error("GEMINI_API_KEY is missing");
-          }
-          ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      }
-      return ai;
+  // AI Client for OpenRouter
+  async function callOpenRouter(prompt: string, isJson: boolean = true) {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY is missing");
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://github.com/tanvir191030/to-do-app", // Optional
+        "X-Title": "Do-It Task Manager", // Optional
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        "model": "google/gemini-2.0-flash-001", // You can change this model
+        "messages": [
+          { "role": "user", "content": prompt }
+        ],
+        "response_format": isJson ? { "type": "json_object" } : undefined
+      })
+    });
+
+    const data: any = await response.json();
+    if (data.error) throw new Error(data.error.message || "OpenRouter Error");
+    
+    let text = data.choices[0].message.content;
+    return text.trim().replace(/```json/gi, '').replace(/```/g, '').trim();
   }
 
   // API Route for Task Parsing
@@ -30,28 +47,19 @@ async function startServer() {
       const { input } = req.body;
       if (!input) return res.status(400).json({ error: "No input provided" });
 
-      const aiClient = getAI();
       const prompt = `
-Extract task details from this sentence and output ONLY pure JSON (no markdown formatting or backticks around it):
+Extract task details from this sentence and output ONLY pure JSON:
 Sentence: "${input}"
 
 Format: {"title":"(short Title)", "date":"(YYYY-MM-DD, or empty if none)", "time":"(HH:MM in 24hr format, or empty)", "priority":"High, Med, or Low", "category":"Work, Personal, Shopping, or Health"}
 Use today's date context if needed: ${new Date().toDateString()}
       `;
-      const model = aiClient.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(prompt);
-      const text = result.response.text().trim().replace(/```json/gi, '').replace(/```/g, '').trim();
+      
+      const text = await callOpenRouter(prompt);
       const data = JSON.parse(text);
       res.json(data);
     } catch (err: any) {
       console.error(err);
-      if (err?.message?.includes("quota") || err?.message?.includes("exceeded") || err?.message?.includes("429")) {
-        // Simple fallback parsing when AI is rate limited
-        let p = "Med";
-        let lower = input.toLowerCase();
-        if (lower.includes('urgent') || lower.includes('high')) p = 'High';
-        return res.json({ title: input, priority: p, category: 'Personal' });
-      }
       res.status(500).json({ error: "Failed to parse task", details: err?.message });
     }
   });
@@ -62,16 +70,22 @@ Use today's date context if needed: ${new Date().toDateString()}
       const { title } = req.body;
       if (!title) return res.status(400).json({ error: "No title provided" });
 
-      const aiClient = getAI();
       const prompt = `
 Generate 3-5 useful subtasks for this task: "${title}".
-Return ONLY pure JSON array of strings (no markdown formatting, no backticks).
+Return ONLY pure JSON array of strings.
 Example: ["Write script", "Record video", "Edit"]
       `;
-      const model = aiClient.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent(prompt);
-      const text = result.response.text().trim().replace(/```json/gi, '').replace(/```/g, '').trim();
-      const data = JSON.parse(text);
+      
+      const text = await callOpenRouter(prompt, false); // Some models struggle with json_object for simple arrays
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        // Fallback: try to extract array if model returned text
+        const match = text.match(/\[.*\]/s);
+        if (match) data = JSON.parse(match[0]);
+        else throw e;
+      }
       res.json(data);
     } catch (err: any) {
       console.error(err);
