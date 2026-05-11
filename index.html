@@ -915,7 +915,7 @@
         <p style="color:var(--on-surface-variant);font-size:14px;">This action cannot be undone.</p>
         <div class="alert-actions">
             <button class="alert-btn cancel" onclick="closeAlert()">Cancel</button>
-            <button class="alert-btn confirm" id="confirmDelBtn">Delete</button>
+            <button class="alert-btn confirm" id="confirmDelBtn" onclick="executeDelete()">Delete</button>
         </div>
     </div>
 
@@ -1483,22 +1483,22 @@
     function confirmDelete(id) {
         taskToDelete = id;
         const modal = document.getElementById('alertModal');
-        const overlay = document.getElementById('overlay');
-        if (modal) modal.classList.add('active');
-        if (overlay) overlay.classList.add('active');
+        const overlay = document.getElementById('aiModalOverlay'); // Using existing overlay if possible or standard one
+        const stdOverlay = document.getElementById('overlay');
         
-        // Wire up the confirm button
-        const confirmBtn = document.getElementById('confirmDelBtn');
-        if (confirmBtn) {
-            confirmBtn.onclick = executeDelete;
-        }
+        if (modal) modal.classList.add('active');
+        if (stdOverlay) stdOverlay.classList.add('active');
+        else if (overlay) overlay.classList.add('active');
     }
 
     function closeAlert() {
         const modal = document.getElementById('alertModal');
-        const overlay = document.getElementById('overlay');
+        const overlay = document.getElementById('aiModalOverlay');
+        const stdOverlay = document.getElementById('overlay');
+        
         if (modal) modal.classList.remove('active');
-        if (overlay) overlay.classList.remove('active');
+        if (stdOverlay) stdOverlay.classList.remove('active');
+        else if (overlay) overlay.classList.remove('active');
         taskToDelete = null;
     }
 
@@ -1506,7 +1506,7 @@
         if (!taskToDelete) return;
         const id = taskToDelete;
         
-        // Optimistic UI update
+        // Immediate UI feedback
         tasks = tasks.filter(t => t.id !== id);
         saveToLocal();
         renderTasks();
