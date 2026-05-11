@@ -694,13 +694,12 @@
     </button>
     
     <!-- Voice FAB -->
+    <!-- Voice FAB -->
     <button class="fab" id="voiceBtn" 
             style="bottom: 160px; right: 28px; width: 44px; height: 44px; background: var(--surface); color: var(--primary); border: 2px solid var(--primary); z-index: 1000; transition: all 0.2s;"
-            onmousedown="voiceDown(event)" 
-            onmouseup="voiceUp(event)" 
-            onmouseleave="voiceUp(event)"
-            ontouchstart="voiceDown(event)" 
-            ontouchend="voiceUp(event)">
+            onpointerdown="handleVoiceStart(event)" 
+            onpointerup="handleVoiceEnd(event)"
+            onpointerleave="handleVoiceEnd(event)">
         <span class="material-symbols-outlined" style="font-size: 24px;">mic</span>
     </button>
 
@@ -2414,8 +2413,8 @@
     // --- Speech Recognition ---
     let recognition = null;
     let isRecording = false;
-    let voiceMode = 'idle'; // 'idle', 'hold', 'toggle'
-    let holdTimer = null;
+    let voiceStartTime = 0;
+    let recordingType = null; // 'hold' or 'toggle'
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2442,12 +2441,17 @@
             btn.style.borderColor = 'var(--primary)';
             btn.style.transform = 'scale(1)';
             btn.querySelector('span').textContent = 'mic';
-            voiceMode = 'idle';
+            recordingType = null;
+            voiceStartTime = 0;
         };
 
         recognition.onerror = function(event) {
             console.error('Speech recognition error', event.error);
-            voiceMode = 'idle';
+            if (event.error === 'not-allowed') {
+                alert('Microphone access denied. Please allow microphone permissions in your browser settings.');
+            }
+            recordingType = null;
+            voiceStartTime = 0;
         };
 
         recognition.onresult = function(event) {
@@ -2456,42 +2460,43 @@
         };
     }
 
-    window.voiceDown = function(e) {
+    window.handleVoiceStart = function(e) {
         if(e.cancelable) e.preventDefault();
-        if(isRecording) {
-            if(voiceMode === 'toggle') {
-                stopVoice();
-            }
+        
+        // If already recording in toggle mode, stop it
+        if(isRecording && recordingType === 'toggle') {
+            stopVoice();
             return;
         }
-        
-        holdTimer = setTimeout(() => {
-            voiceMode = 'hold';
-            startVoice();
-        }, 200);
+
+        if(isRecording) return;
+
+        voiceStartTime = Date.now();
+        recordingType = 'hold'; // Assume hold initially
+        startVoice();
     };
 
-    window.voiceUp = function(e) {
-        if(holdTimer) {
-            clearTimeout(holdTimer);
-            holdTimer = null;
-        }
+    window.handleVoiceEnd = function(e) {
+        if(!isRecording || recordingType === 'toggle') return;
 
-        if(voiceMode === 'hold') {
+        const duration = Date.now() - voiceStartTime;
+        if(duration > 400) {
+            // It was a long press, stop now
             stopVoice();
-        } else if (voiceMode === 'idle' && !isRecording) {
-            // It was a short tap, so toggle mode
-            voiceMode = 'toggle';
-            startVoice();
+        } else {
+            // It was a short tap, keep recording (toggle mode)
+            recordingType = 'toggle';
         }
     };
 
     function startVoice() {
         if (!recognition) {
-            alert('Speech Recognition is not supported in this browser.');
+            alert('Speech Recognition is not supported in this browser. Please use Chrome or Edge.');
             return;
         }
-        try { recognition.start(); } catch(e) {}
+        try { recognition.start(); } catch(e) {
+            console.log('Start failed', e);
+        }
     }
 
     function stopVoice() {
