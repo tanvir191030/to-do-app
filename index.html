@@ -190,6 +190,39 @@
         .fab:active { transform: scale(0.9) rotate(5deg); background: #3c32b5; }
         .fab span { font-size: 28px; font-weight: 300; }
 
+        @keyframes mic-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.6); transform: scale(1.2); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 71, 87, 0); transform: scale(1.25); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); transform: scale(1.2); }
+        }
+        .mic-pulsing { animation: mic-pulse 1.5s infinite !important; }
+
+        @keyframes mic-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.6); transform: scale(1.2); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 71, 87, 0); transform: scale(1.25); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); transform: scale(1.2); }
+        }
+        .mic-pulsing { animation: mic-pulse 1.5s infinite !important; }
+
+        #refreshIndicator {
+            position: fixed;
+            top: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10000;
+            transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
         /* Bottom Nav */
         nav { 
             position: absolute; 
@@ -1098,6 +1131,7 @@
         
         initFx();
         renderSwipeDates();
+        initRefreshHandler();
         
         supabaseApp.auth.getSession().then(({ data: { session } }) => {
             console.log("Initial session:", session ? "Active" : "None");
@@ -2485,8 +2519,9 @@
             btn.style.background = '#ff4757';
             btn.style.color = '#fff';
             btn.style.borderColor = '#ff4757';
-            btn.style.transform = 'scale(1.2)';
+            btn.classList.add('mic-pulsing');
             btn.querySelector('span').textContent = 'mic_none';
+            showSnackbar('Listening... say your task', 'OK', hideSnackbar);
         };
 
         recognition.onend = function() {
@@ -2495,10 +2530,11 @@
             btn.style.background = 'var(--surface)';
             btn.style.color = 'var(--primary)';
             btn.style.borderColor = 'var(--primary)';
-            btn.style.transform = 'scale(1)';
+            btn.classList.remove('mic-pulsing');
             btn.querySelector('span').textContent = 'mic';
             recordingType = null;
             voiceStartTime = 0;
+            hideSnackbar();
         };
 
         recognition.onerror = function(event) {
@@ -2514,6 +2550,38 @@
             const transcript = event.results[0][0].transcript;
             handleVoiceTask(transcript);
         };
+    }
+
+    function initRefreshHandler() {
+        const header = document.getElementById('appHeader');
+        const indicator = document.getElementById('refreshIndicator');
+        let startY = 0;
+        let pulling = false;
+
+        header.addEventListener('touchstart', (e) => {
+            if (window.scrollY === 0) {
+                startY = e.touches[0].pageY;
+                pulling = true;
+            }
+        }, {passive: true});
+
+        header.addEventListener('touchmove', (e) => {
+            if (!pulling) return;
+            const diff = e.touches[0].pageY - startY;
+            if (diff > 50) {
+                indicator.style.top = '20px';
+                if (diff > 120) {
+                    location.reload();
+                }
+            }
+        }, {passive: true});
+
+        header.addEventListener('touchend', () => {
+            pulling = false;
+            setTimeout(() => {
+                indicator.style.top = '-60px';
+            }, 500);
+        });
     }
 
     window.handleVoiceStart = function(e) {
