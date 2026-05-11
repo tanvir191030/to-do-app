@@ -29,26 +29,27 @@ async function callOpenRouter(prompt: string, isJson: boolean = true) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        "models": [
-          "google/gemini-2.0-flash-exp:free",
-          "google/gemini-2.0-flash-exp",
-          "meta-llama/llama-3.3-70b-instruct:free"
-        ],
+        "model": "google/gemini-2.0-flash-exp:free",
         "messages": [{ "role": "user", "content": prompt }],
         ...(isJson ? { "response_format": { "type": "json_object" } } : {})
       })
     });
 
+    const data: any = await response.json();
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `API Error ${response.status}`);
+      console.error("OpenRouter API Detailed Error:", data);
+      const detail = data.error?.metadata?.raw || data.error?.message || JSON.stringify(data.error);
+      throw new Error(detail);
     }
 
-    const data: any = await response.json();
+    if (!data.choices || !data.choices[0]) {
+      throw new Error("Empty response from AI provider");
+    }
+
     let text = data.choices[0].message.content;
     return text.trim().replace(/```json/gi, '').replace(/```/g, '').trim();
   } catch (e: any) {
-    console.error("AI call failed:", e.message);
+    console.error("Fetch Exception during OpenRouter call:", e.message);
     throw e;
   }
 }
