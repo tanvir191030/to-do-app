@@ -47,21 +47,20 @@
             min-height: 100vh;
             min-height: 100dvh;
             transition: background-color 0.3s, color 0.3s;
-            overflow-x: hidden;
-            overflow-y: auto;
-            overscroll-behavior-y: auto;
+            overflow: hidden;
             scroll-behavior: smooth;
         }
 
         .app-container {
             width: 100%;
             max-width: 420px;
-            min-height: 100vh;
-            min-height: 100dvh;
+            height: 100vh;
+            height: 100dvh;
             background: var(--bg);
             position: relative;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
             box-shadow: 0 0 20px rgba(0,0,0,0.05);
             margin: 0 auto;
         }
@@ -74,8 +73,6 @@
             align-items: center; 
             background: var(--bg); 
             z-index: 100; 
-            position: sticky; 
-            top: 0;
         }
         .logo-area { display: flex; align-items: center; gap: 12px; }
         .logo-icon { width: 44px; height: 44px; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -89,10 +86,15 @@
         /* Main Content Scroll */
         main { 
             flex: 1; 
-            padding: 0 24px 120px; 
+            overflow-y: auto; 
+            overflow-x: hidden; 
+            padding: 0 24px 100px; 
             display: flex; 
             flex-direction: column; 
             gap: 20px; 
+            -webkit-overflow-scrolling: touch; 
+            scrollbar-width: none;
+            overscroll-behavior-y: auto;
         }
         main::-webkit-scrollbar { display: none; }
 
@@ -190,10 +192,9 @@
 
         /* Bottom Nav */
         nav { 
-            position: fixed; 
+            position: absolute; 
             bottom: 0; 
             width: 100%; 
-            max-width: 420px;
             height: calc(75px + env(safe-area-inset-bottom, 0px)); 
             background: var(--surface); 
             border-radius: 24px 24px 0 0; 
